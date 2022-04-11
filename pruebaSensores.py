@@ -1,7 +1,10 @@
 #from picamera import PiCamera
 
 from lib.aurigapy.aurigapy import *
-from lib.hiloLineasCamara import HiloLineasCam
+
+from lib.hiloCamara import HiloCamara
+from lib.hiloLineas import HiloLineas
+
 from lib.hiloQLearning import HiloQLearning
 from lib.hiloControl import HiloControl
 from lib.singleton import SingletonVariables
@@ -9,22 +12,37 @@ import time
 from datetime import datetime
 from time import gmtime, strftime
 
+import numpy as np
+
 import pygame
 from pygame.locals import *
 
 done = False
 
 parado = False
+
+mando = None
 joystickEnabled = False
 
 sensorDer = 0
 sensorIz = 0
 
+# Inicializar el hilo de la camara
+resolucionCam = (80, 64)
 
 rA = 0.7 #Ratio de aprendizaje
 gamma = 0.82
 
+#Inicializamos el singleton para almacenar variables globales entre objetos
 variablesGlobales = SingletonVariables()
+
+variablesGlobales.auriga = None
+variablesGlobales.parado = False
+
+
+# Inicializamos una opcion de NumPy para mostrar datos en punto flotante
+# con 3 digitos decimales de precision al imprimir un array
+np.set_printoptions(precision=3)
 
 def timestamp():
     return strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -42,7 +60,7 @@ def on_sensor_read_r(value, timeout):
 		sensorDer = int(value)
 		#print("%r > %r (%r) 1" % (timestamp(), sensorDer, timeout))
 		
-		if sensorDer == 0 or sensorDer == 1:
+		if sensorDer != 3:
 			hiloControl.pararRobot()
 			
 	if done:
@@ -57,7 +75,7 @@ def on_sensor_read_l(value, timeout):
 		sensorIz = int(value)
 		#print("%r > %r (%r) 2" % (timestamp(), sensorIz, timeout))		
 		
-		if sensorIz == 0 or sensorIz == 2:
+		if sensorIz != 3:
 			hiloControl.pararRobot()
 			
 	if done:
@@ -65,27 +83,6 @@ def on_sensor_read_l(value, timeout):
 		
 	#variablesGlobales.auriga.get_line_sensor(7, callback= on_sensor_read_l)
 
-
-def ejecutarAccion(auriga, accion, inversa = False):
-    mod = 1
-    if inversa:
-        mod = -1
-    
-    if accion == 0:
-        auriga.set_speed(-50 * mod, 50 * mod) #Avanzar
-
-    elif accion == 1:
-        auriga.set_speed(-40 * mod, 80 * mod) #Girar a la derecha
-
-    elif accion == 2:
-        auriga.set_speed(-80 * mod, 40 * mod) #Girar a la izquierda
-
-    elif accion == 3:
-        auriga.set_speed(-10 * mod, 100 * mod) #Girar fuerte a la derecha
-
-    elif accion == 4:
-        auriga.set_speed(-100 * mod, 10 * mod) #Girar fuerte a la izquierda
-        
 
 
 def main(ap, hiloLineasCam, mando):
@@ -120,8 +117,9 @@ def main(ap, hiloLineasCam, mando):
 					hiloLineasCam.printUltimaFotog()
 				elif event.key == pygame.K_p:
 					#Hacer un print de la tabla Q
-					print("Tabla Q, Random Prob: ", hiloQLearning.randomProb)
+					print("Tabla Q")
 					print(hiloQLearning.tablaQ)
+					
 			elif event.type == pygame.JOYBUTTONDOWN:
 				if event.button == 0:
 					#Volver a permitir el movimiento
@@ -129,8 +127,16 @@ def main(ap, hiloLineasCam, mando):
 				elif event.button == 1:
 					#Parada de emergencia
 					hiloControl.pararRobot()
-
-                
+				elif event.button == 4:
+					#Guardar el ultimo frame
+					print("Se ha almacenado la imagen")
+					hiloLineasCam.printUltimaFotog()
+				elif event.button == 3:
+					#Hacer un print de la tabla Q
+					print("Tabla Q")
+					print(hiloQLearning.tablaQ)
+				elif event.button == 6:	
+					done = True
 		if not parado:
 			#Actualizar tabla Q
 			continue
@@ -139,12 +145,11 @@ def main(ap, hiloLineasCam, mando):
 if __name__ == '__main__':
 	try:
 		
-		# Inicializar el hilo de la camara
-		resolucionCam = (80, 64)
+		
 
-		hiloLineasCam = HiloLineasCam(resolucionCam).start()
+		hiloCam = HiloCamara(resolucionCam).start()
 		pygame.init()
-		screen = pygame.display.set_mode((400,400))
+		#screen = pygame.display.set_mode((400,400))
 
 		# Cogemos el reloj de pygame 
 		reloj = pygame.time.Clock()
@@ -153,25 +158,26 @@ if __name__ == '__main__':
 		bluetooth = "/dev/tty.Makeblock-ELETSPP"
 		usb = "/dev/ttyUSB0"
 		
-		mando = None
 		pygame.joystick.init()
 		if pygame.joystick.get_count()>0:
 			mando = pygame.joystick.Joystick(0)
 			mando.init()
 			joystickEnabled = True
-			print("mandoActivado")
+			print("MandoActivado")
 
-		
-		
+
 		print(" Conectando..." )
 		ap.connect(usb)
 		print(" Conectado!" )
 		time.sleep(0.2)
-		ap.set_command(command="forward", speed=0, callback=on_reading) 
-		variablesGlobales.auriga = ap
-		variablesGlobales.parado = False
 		
-		hiloQLearning = HiloQLearning(hiloLineasCam.getNumEstados(),5,hiloLineasCam,rA,gamma, 2000) 
+		ap.set_command(command="forward", speed=0, callback=on_reading) 
+		
+		variablesGlobales.auriga = ap
+		
+		hiloLineas = HiloLineas(hiloCam, resolucionCam).start()
+		
+		hiloQLearning = HiloQLearning(hiloLineas.getNumEstados(),5,hiloLineas,rA,gamma) 
 		hiloControl = HiloControl(hiloQLearning, ap)
 		
 		hiloQLearning.setHiloControl(hiloControl)
@@ -180,15 +186,16 @@ if __name__ == '__main__':
 		#hiloControl.start()
 		
 		
-		main(ap, hiloLineasCam, mando)
+		main(ap, hiloLineas, mando)
 		
 		
 	finally:
-		print('parado')
-		hiloLineasCam.stop()
+		print('Finalizando la ejecución')
+		hiloLineas.stop()
 		hiloQLearning.stop()
 		#hiloControl.stop()
-
+		hiloCam.stop()
+		
 		ap.set_command(command='forward',speed=0, callback=on_reading)
 		time.sleep(2)
 		ap.reset_robot()

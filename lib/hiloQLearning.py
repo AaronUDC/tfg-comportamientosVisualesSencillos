@@ -4,28 +4,30 @@ import numpy as np
 from lib.hiloLineasCamara import HiloLineasCam
 from lib.singleton import SingletonVariables
 from threading import Thread
+import threading
 
 class HiloQLearning():
-    def __init__(self, estados, acciones, hiloLineasCam, rA, gamma, numRandomActions):
+    def __init__(self, estados, acciones, hiloLineasCam, rA, gamma):
         self.nEstados= estados
         self.nAcciones = acciones
         
         self.rA = rA #Ratio de aprendizaje
+        
         self.gamma = gamma
 
-        self.tablaQ = np.zeros((estados, acciones))
+        self.tablaQ = np.random.rand(estados, acciones) * 3
         
         self.hiloControl = None
         
         self.hiloLineasCam = hiloLineasCam
         self.estadoAnterior = self.hiloLineasCam.read()
         
-        self.recompensa = (0,False) #Ultima recompensa, el segundo dato indica si se ha aplicado o no
+        self.recompensa = 0 #Ultima recompensa
+        # Lock para bloquear el thread una vez se aplica la recompensa 
+        # hasta que se reciba otra.
+        self.recValida = threading.Lock() 
         
-        
-        self.randomProb = 1.0
-        self.numRandomActions = numRandomActions
-        
+        #Singleton
         self.variablesGlobales = SingletonVariables()
         
         self.done = False
@@ -48,45 +50,38 @@ class HiloQLearning():
     def update(self):
         
         while not self.done:
-            
+            #Crear un bloqueo en las variables globales?
             if self.variablesGlobales.parado:
                 continue
-            
+                
+            #Obtener el estado actual
             estado = self.hiloLineasCam.read()
             #Seleccionar accion
-            accion = self.getMejorAccion(estado) #Obtenemos la mejor accion segun el estado actual
-            
-            if random.random() < self.randomProb: 
-                accion = random.randint(0,self.nAcciones-1)
-            else:
-                accion = self.getMejorAccion(self.estadoAnterior)
+            accion = self.getMejorAccion(self.estadoAnterior)
                 
             #Enviar accion al hilo de control
             self.hiloControl.setAccion(accion)
             
-            (recompensa, recValida) = self.recompensa
-            while not recValida:
-                (recompensa, recValida) = self.recompensa
+            self.recValida.acquire() #Esperamos a recibir una nueva recompensa.
             
-            self.recompensa = (recompensa, False)
-            print("Recompensa ", recompensa, accion )
+            #print("Recompensa ", self.recompensa, accion )
             #Actualizar tabla Q
-            self.actualizarQValor(self.estadoAnterior, accion, recompensa, estado) 
-
+            self.actualizarQValor(self.estadoAnterior, accion, self.recompensa, estado) 
+            
+            self.recValida.acquire(blocking=False) #Bloqueamos el poder recibir nuevas recompensas
+            
             self.estadoAnterior = estado
             #Actualizar la probabilidad de seleccionar una accion aleatoria
-            self.randomProb = self.randomProb - 1.0/self.numRandomActions
-            self.randomProb = max(min(self.randomProb, 1.0), 0.0)
+            #self.randomProb = self.randomProb - 1.0/self.numRandomActions
+            #self.randomProb = max(min(self.randomProb, 1.0), 0.0)
             
     def setHiloControl(self, hiloControl):
         self.hiloControl = hiloControl
                 
     def setRecompensa(self, recompensa):
-        (_,recValida) = self.recompensa
-        if not recValida: 
-            self.recompensa = (recompensa,True)
-            return True
-        return False
+        self.recompensa = recompensa 
+        if self.recValida.locked():
+            self.recValida.release() #Permitimos recibir una nueva recompensa
         
     def stop(self):
         self.done = True

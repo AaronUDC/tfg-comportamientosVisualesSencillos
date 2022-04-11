@@ -28,7 +28,7 @@ class HiloControl():
 		
 		self.hiloQLearning = hiloQLearning
 		
-		self.recompensa = 1
+		self.recompensa = 0
 		
 		self.done = False
 		
@@ -39,20 +39,20 @@ class HiloControl():
 			mod = -1
 		#print(accion)
 		if accion == 0:
-			auriga.set_speed(-50 * mod, 50 * mod, callback=on_reading) #Avanzar
+			auriga.set_speed(-70 * mod, 70 * mod, callback=on_reading) #Avanzar
 
 		elif accion == 1:
 			
-			auriga.set_speed(-40 * mod, 80 * mod, callback=on_reading) #Girar a la derecha
+			auriga.set_speed(-60 * mod, 100 * mod, callback=on_reading) #Girar a la derecha
 
 		elif accion == 2:
-			auriga.set_speed(-80 * mod, 40 * mod, callback=on_reading) #Girar a la izquierda
+			auriga.set_speed(-100 * mod, 60 * mod, callback=on_reading) #Girar a la izquierda
 
 		elif accion == 3:
-			auriga.set_speed(-10 * mod, 100 * mod, callback=on_reading) #Girar fuerte a la derecha
+			auriga.set_speed(-30 * mod, 120 * mod, callback=on_reading) #Girar fuerte a la derecha
 
 		elif accion == 4:
-			auriga.set_speed(-100 * mod, 10 * mod, callback=on_reading) #Girar fuerte a la izquierda
+			auriga.set_speed(-120 * mod, 30 * mod, callback=on_reading) #Girar fuerte a la izquierda
 	
 	def start(self):
 		Thread(target=self.update, args=()).start()
@@ -71,7 +71,7 @@ class HiloControl():
 			self.ejecutarAccion(self.variablesGlobales.auriga, self.accion)
 			#Actualizar recompensa
 			
-			self.hiloQLearning.setRecompensa(1)
+			self.hiloQLearning.setRecompensa(0)
 
 	    
 	def stop(self):
