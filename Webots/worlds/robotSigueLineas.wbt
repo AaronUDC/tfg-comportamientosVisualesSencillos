@@ -1,0 +1,65 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  basicTimeStep 16
+  coordinateSystem "NUE"
+  lineScale 0.05
+  contactProperties [
+    ContactProperties {
+      material2 "khepera4 caster wheel"
+      coulombFriction [
+        0.01
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation 0.5674007834878433 -0.7639298761214454 -0.3073556494786693 5.979886370341902
+  position 0.7013978883767733 0.5174453106472074 2.1273281934274597
+  follow "Khepera IV"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+  castShadows FALSE
+}
+DEF robot Khepera4 {
+  translation -0.12 0.002 0.68
+  rotation 0 1 0 -1.5707953071795862
+  controller "robotController"
+  supervisor TRUE
+  turretSlot [
+    LightSensor {
+      translation -0.045 0.0029999 0
+      rotation 0 0 1 -1.5707953071795862
+      name "left light sensor"
+    }
+    LightSensor {
+      translation 0.045 0.003 0
+      rotation 0 0 1 -1.5707953071795862
+      name "right light sensor"
+    }
+    Camera {
+      translation 0 0.0694331 -0.0178741
+      rotation -1 0 0 0.523595
+      name "cameraLinea"
+      fieldOfView 1.1
+      width 80
+      near 0.075
+    }
+  ]
+}
+RectangleArena {
+  floorSize 2 2
+  floorAppearance Appearance {
+    material Material {
+    }
+    texture ImageTexture {
+      url [
+        "D:/Documentos/Cole/Carrera/5/TFG/Webots/textures/TexturaSuelo.png"
+      ]
+    }
+    textureTransform TextureTransform {
+      scale 0.25 0.25
+    }
+  }
+}
