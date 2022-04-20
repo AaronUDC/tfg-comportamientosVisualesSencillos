@@ -124,13 +124,13 @@ class HiloQLearning():
         #Cargar una tablaQ de un archivo
         
         self.tablaQ = np.loadtxt(path, skiprows=1)
-        print('TablaQ cargada de: ', path.name)
+        print('TablaQ cargada de: ', path)
         print(self.tablaQ)
         
     def guardarTablaQ(self):
         #Guardar la tablaQ en un archivo, almacenando la versión y algoritmo en la cabecera.
-        fecha = strftime("%Y-%m-%d_%H:%M:%S", gmtime())
-        nombreArchivo = 'savedTables/TablaQ_{fecha}_{algoritmo}_{version}.txt'.format(fecha=fecha, \
+        fecha = strftime("%Y-%m-%d_%H.%M.%S", gmtime())
+        nombreArchivo = 'savedTables\TablaQ_{fecha}_{algoritmo}_{version}.txt'.format(fecha=fecha, \
            algoritmo = nombreAlgoritmo, version= self.variablesGlobales.version)
         
         cabecera = 'TablaQ rA= {rA} gamma= {gamma}'.format(rA= self.rA, gamma= self.gamma)

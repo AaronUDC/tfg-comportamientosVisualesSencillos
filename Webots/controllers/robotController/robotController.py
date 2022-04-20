@@ -2,6 +2,8 @@
 import time
 
 from lib.apiWebots import ApiWebots
+from lib.apiControl import ApiControlRobot
+#from lib.apiAuriga import ApiAuriga
 
 from lib.hiloLineas import HiloLineas
 
@@ -15,14 +17,14 @@ from time import gmtime, strftime
 
 import argparse
 import pathlib
+import configparser
+
 
 import numpy as np
 
 import pygame
 from pygame.locals import *
 
-
-TIME_STEP = 24
 
 done = False
 
@@ -32,9 +34,9 @@ mando = None
 
 joystickEnabled = False
 
-controlRobot = ApiWebots()
+controlRobot = None
 
-resolucionCam = controlRobot.getResolucionCam()
+resolucionCam = None
 
 rA = 0.5 #Ratio de aprendizaje
 gamma = 0.90
@@ -51,43 +53,65 @@ variablesGlobales.version = '1'
 path = None
 guardarTabla = False
 
+apiSt = 'apiControl'
+
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
 
 def parseArgs():
     #Parsear argumentos 
-	global path, guardarTabla
-	
-	parser = argparse.ArgumentParser(description= "Seguimiento de lineas mediante aprendizaje por refuerzo")
-	
-	parser.add_argument('--path', help='Ruta del archivo que contiene la tablaQ', nargs='?', type=argparse.FileType('r') ,dest='path')
-	parser.add_argument('-s', action='store_true', help='Guardar la tabla Q al terminar la ejecución', dest='guardarTabla')
-	
-	args = parser.parse_args()
-	
-	path = args.path
-	guardarTabla = args.guardarTabla
-	#print(args, path, guardarTabla)
-	
+    global path, guardarTabla, apiSt
+
+
+    config = configparser.ConfigParser()
+    config.read('config.ini')
+
+    if config['DEFAULT']['archivoLectura'] != '':
+        path = config['DEFAULT']['archivoLectura']
+
+    guardarTabla = config['DEFAULT'].getboolean('guardarTabla')
+
+
+    print(path)
+    
+
+    apiSt = config['DEFAULT']['API']
+
+    parser = argparse.ArgumentParser(description= "Seguimiento de lineas mediante aprendizaje por refuerzo")
+
+    parser.add_argument('--path', help='Ruta del archivo que contiene la tablaQ', nargs='?', type=argparse.FileType('r') ,dest='path')
+    parser.add_argument('-s', action='store_true', help='Guardar la tabla Q al terminar la ejecución', dest='guardarTabla')
+
+    args = parser.parse_args()
+
+    if args.path is not None and args.path != '':
+        path = args.path
+
+    if args.guardarTabla:
+        guardarTabla = args.guardarTabla
+    #print(args, path, guardarTabla)
+
+
+
 def cambiarCapturaFotos():
-	global variablesGlobales
-	
-	if variablesGlobales.guardarFotos:
-		variablesGlobales.guardarFotos = False
-		print("Se ha parado la captura de fotos")
-	else:
-		variablesGlobales.guardarFotos = True
-		print("Captura de fotos iniciada")
+    global variablesGlobales
 
-'''
-while not done:
+    if variablesGlobales.guardarFotos:
+        variablesGlobales.guardarFotos = False
+        print("Se ha parado la captura de fotos")
+    else:
+        variablesGlobales.guardarFotos = True
+        print("Captura de fotos iniciada")
 
-    controlRobot.update()
-    print(controlRobot.getSensorLinea())
+def seleccionarApiControl():
 
-    time.sleep(0.01)
-'''
+    if apiSt == 'apiWebots':
+        return ApiWebots()
+    #elif apiSt == 'apiAuriga':
+    #   return ApiAuriga()
+
+    return ApiControlRobot() # Por defecto devolvemos una api que no hace nada
 
 def main():
     global done, parado, variablesGlobales
@@ -173,7 +197,11 @@ if __name__ == '__main__':
 
         time.sleep(0.2)
 
+        controlRobot = seleccionarApiControl()
+
         variablesGlobales.control = controlRobot
+
+        resolucionCam = controlRobot.getResolucionCam()
 
         hiloLineas = HiloLineas(controlRobot, resolucionCam).start()
 

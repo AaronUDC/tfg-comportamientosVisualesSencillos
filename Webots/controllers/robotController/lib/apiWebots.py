@@ -108,7 +108,8 @@ class ApiWebots(ApiControlRobot):
         self.camera.disable()
         self.sensorLineaIzq.disable()
         self.sensorLineaDer.disable()
-    
+        self.setMotores(0,0) #Paramos los motores
+        
     def reset(self):
         #Esta función sirve para colocar de nuevo el robot en la linea en caso de que se salga
 
