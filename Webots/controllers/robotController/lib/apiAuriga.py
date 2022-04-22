@@ -3,18 +3,20 @@ from lib.apiControl import ApiControlRobot
 from lib.hiloCamara import HiloCamara
 from lib.aurigapy.aurigapy import AurigaPy
 import time
+from time import gmtime, sleep, strftime
+
 import pygame
 
 TIME_STEP = 30
 
 #Velocidades para el movimiento
-VEL_BASE = 50
+VEL_BASE = 40
 MOD_VEL = 20
 
 SENSORES_INFERIORES = [6,7]
 
 # Inicializar el hilo de la camara
-RESOLUCION_CAM = (80, 64)
+RESOLUCION_CAM = (48, 32)
     
 bluetooth = "/dev/tty.Makeblock-ELETSPP"
 usb = "/dev/ttyUSB0"
@@ -34,9 +36,15 @@ def callbackSensorL(value, timeout):
     if not timeout and value is not None:
         sensorIz = int(value)	
 
-  
 
+def timestamp():
+    return strftime("%Y-%m-%d %H:%M:%S", gmtime())
 
+def onReading(value, timeout):
+    
+    print("%r > %r (%r)" % (timestamp(), value, timeout))
+    #pass
+    
 class ApiAuriga(ApiControlRobot):
 
     def __init__(self):
@@ -46,21 +54,35 @@ class ApiAuriga(ApiControlRobot):
         self.reloj = pygame.time.Clock()
 
         self.auriga = AurigaPy(debug=False)
-
         print(" Conectando..." )
         self.auriga.connect(usb)
         print(" Conectado!" )
         time.sleep(0.2)
 
-        self.auriga.set_command(command="forward", speed=0)           
+        self.setMotores(0,0) 
+        
+        self.izq= False         
 
     def update(self):
+        #global sensorDer, sensorIz
         #Actualizar los sistemas del robot
         self.reloj.tick(TIME_STEP)
-        self.auriga.get_line_sensor(SENSORES_INFERIORES[0], callback= callbackSensorR)
-        self.auriga.get_line_sensor(SENSORES_INFERIORES[1], callback= callbackSensorL)
+        
+        self.izq = not self.izq
+        #rint(self.reloj.get_fps())
+        #sensorDer = self.auriga.get_line_sensor(SENSORES_INFERIORES[0])
+        #sensorIz = self.auriga.get_line_sensor(SENSORES_INFERIORES[1])
 
     def getSensorLinea(self):
+        global sensorDer, sensorIz
+        if self.izq:
+          sensorIz = self.auriga.get_line_sensor(SENSORES_INFERIORES[1])
+        else:
+          sensorDer = self.auriga.get_line_sensor(SENSORES_INFERIORES[0])
+        
+        if sensorDer is None or sensorIz is None:
+            return False
+            
         return sensorDer != 3 or sensorIz != 3
 
     def getDatosCamara(self):
@@ -81,24 +103,25 @@ class ApiAuriga(ApiControlRobot):
 
         elif accion == 1:
             
-            self.setMotores(-(VEL_BASE - MOD_VEL), VEL_BASE + MOD_VEL) #Girar a la derecha
+            self.setMotores(-(VEL_BASE + MOD_VEL), VEL_BASE - MOD_VEL) #Girar a la derecha
 
         elif accion == 2:
-            self.setMotores(-(VEL_BASE + MOD_VEL), VEL_BASE - MOD_VEL) #Girar a la izquierda
+            self.setMotores(-(VEL_BASE - MOD_VEL), VEL_BASE + MOD_VEL) #Girar a la izquierda
             
         elif accion == 3:
-            self.setMotores(-(VEL_BASE - MOD_VEL * 2), VEL_BASE + MOD_VEL * 2) #Girar fuerte a la derecha
+            self.setMotores(-(VEL_BASE + MOD_VEL * 2), VEL_BASE - MOD_VEL * 2) #Girar fuerte a la derecha
 
         elif accion == 4:
-            self.setMotores(-(VEL_BASE + MOD_VEL * 2), VEL_BASE - MOD_VEL * 2) #Girar fuerte a la izquierda
+            self.setMotores(-(VEL_BASE - MOD_VEL * 2), VEL_BASE + MOD_VEL * 2) #Girar fuerte a la izquierda
 
     def terminarRobot(self):
         #Finalizar los sistemas del robot.
         self.hiloCam.stop()
-        self.auriga.set_command(command='forward',speed=0)
+        self.setMotores(0,0)
         time.sleep(2)
         self.auriga.reset_robot()
         self.auriga.close()
+        
 
     #Metodos que solo tienen uso en webots para reiniciar la simulacion
     def reset(self):

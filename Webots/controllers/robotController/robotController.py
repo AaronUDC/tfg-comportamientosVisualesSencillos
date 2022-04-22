@@ -1,9 +1,7 @@
 
-import time
 
-from lib.apiWebots import ApiWebots
-from lib.apiControl import ApiControlRobot
-#from lib.apiAuriga import ApiAuriga
+#from lib.apiWebots import ApiWebots
+#from lib.apiControl import ApiControlRobot
 
 from lib.hiloLineas import HiloLineas
 
@@ -18,7 +16,7 @@ from time import gmtime, strftime
 import argparse
 import pathlib
 import configparser
-
+import platform
 
 import numpy as np
 
@@ -48,6 +46,13 @@ variablesGlobales.auriga = None
 variablesGlobales.parado = False
 variablesGlobales.guardarFotos = False
 variablesGlobales.version = '1'
+
+#Comprobar el sistema operativo para adaptar como se crean las rutas de archivos
+if platform.system() == 'Windows': 
+    variablesGlobales.separadorCarpetas = "\\"
+else:
+    variablesGlobales.separadorCarpetas = '/'
+
 
 #Ruta a la tablaQ
 path = None
@@ -107,28 +112,35 @@ def cambiarCapturaFotos():
 def seleccionarApiControl():
 
     if apiSt == 'apiWebots':
+        from lib.apiWebots import ApiWebots
         return ApiWebots()
-    #elif apiSt == 'apiAuriga':
-    #   return ApiAuriga()
+    elif apiSt == 'apiAuriga':
+        from lib.apiAuriga import ApiAuriga
+        return ApiAuriga()
 
+    from lib.apiControl import ApiControlRobot
     return ApiControlRobot() # Por defecto devolvemos una api que no hace nada
 
 def main():
     global done, parado, variablesGlobales
 
     while not done:
-        
+        t0 = time.time()
         controlRobot.update()
 
         #print(sensorDer,sensorIz)
         if controlRobot.getSensorLinea():
             hiloControl.pararRobot()
-
+            
+        t1=time.time()
+        
         #Gestion de los eventos para controlar el robot
-        eventos = pygame.event.get()
+        
         
         hiloControl.update()
+        t2=time.time()
         
+        eventos = pygame.event.get()
         for event in eventos:
             
             if event.type == pygame.QUIT:
@@ -149,32 +161,39 @@ def main():
                     print(hiloQLearning.tablaQ)
                     
             elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0:
+                if event.button == 0: #Btn A
                     #Volver a permitir el movimiento
                     if variablesGlobales.parado:
                         hiloControl.reanudarRobot()
-                elif event.button == 1:
+                elif event.button == 1: #Btn B
                     #Parada de emergencia
                     if not variablesGlobales.parado:
                         hiloControl.pararRobot()
-                elif event.button == 2:
+                elif event.button == 2:# Btn X
                     #Guardar el ultimo frame
                     print("Se ha almacenado la imagen")
                     hiloLineas.printUltimaFotog()
-                elif event.button == 3:
+                elif event.button == 3: # Btn Y
                     #Hacer un print de la tabla Q
                     print("Tabla Q")
                     print(hiloQLearning.tablaQ)
 
-                elif event.button == 6:	
+                elif event.button == 6:	#Btn BACK
                     done = True
 
-                elif event.button == 4:
+                elif event.button == 4: #Btn LB
                     cambiarCapturaFotos()
+                elif event.button == 5: 
+                    time1=round((t1-t0)*1000)
+                    time2=round((t2 - t1) * 1000)
+                    time3=round((time.time() - t2) * 1000)
+                    
+                    print('Tiempo para obtener sensor:', time1)
+                    print('Tiempo update control:', time2)
+                    print('Tiempo eventos:', time3)
+                    print('Total', time1 + time2 + time3)
+                    
 
-        if not parado:
-            #Actualizar tabla Q
-            continue
 
 
 if __name__ == '__main__':
@@ -207,6 +226,8 @@ if __name__ == '__main__':
 
         hiloQLearning = HiloQLearning(hiloLineas.getNumEstados(),5,hiloLineas,rA,gamma) 
         hiloControl = HiloControl(hiloQLearning, controlRobot, hiloLineas)
+
+        variablesGlobales.control.setHiloControl(hiloControl)
 
         hiloQLearning.setHiloControl(hiloControl)
 

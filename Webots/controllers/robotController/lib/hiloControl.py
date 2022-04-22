@@ -70,7 +70,9 @@ class HiloControl():
 		self.hiloQLearning.setRecompensa(-20)
 		
 		sleep(0.05)
-		self.reanudarRobot()
+		#self.reanudarRobot()
+		self.controlRobot.reset()
+		
 	def reanudarRobot(self):
 		
 		self.controlRobot.reset()

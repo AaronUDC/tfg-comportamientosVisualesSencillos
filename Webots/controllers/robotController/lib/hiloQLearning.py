@@ -70,7 +70,7 @@ class HiloQLearning():
         else:
             nombreArchivo = '{fecha}_{angulo:.2f}_{estado}_{accion}.jpg'.format(fecha=horaSt,angulo=angulo,estado=estado,accion=accion)
         
-        guardado = cv2.imwrite("{carpeta}\{nombre}".format(carpeta=carpeta,nombre=nombreArchivo),imagen)
+        guardado = cv2.imwrite("{carpeta}{separador}{nombre}".format(carpeta=carpeta,separador=self.variablesGlobales.separadorCarpetas,nombre=nombreArchivo),imagen)
 
         #if guardado:
         #   print('Guardado ', nombreArchivo)
@@ -82,7 +82,7 @@ class HiloQLearning():
             #Crear un bloqueo en las variables globales?
             if not self.variablesGlobales.parado:
                     
-                    
+                #t0 = time.time()
                 #Obtener el estado actual
                 estado, imagen, angulo = self.hiloLineasCam.read()
                 
@@ -95,16 +95,22 @@ class HiloQLearning():
                     #Lo ejecutamos en un Thread a parte
                     Thread(target=self._guardarFoto, args=(estado, imagen, angulo, accion)).start()
                     
-                    
+                
                 #Enviar accion al hilo de control
                 self.hiloControl.setAccion(accion)
                 
+                #t1 = time.time()
+                #print('Tiempo decision:',round((t1-t0)*1000))
                 self.recValida.acquire() #Esperamos a recibir una nueva recompensa.
                 
+                #t0 = time.time()
                 #print("Recompensa ", self.recompensa, accion )
                 #Actualizar tabla Q
                 self.actualizarQValor(self.estadoAnterior, accion, self.recompensa, estado) 
                 
+                #t1 = time.time()
+                
+                #print('Tiempo modTabla:',round((t1-t0)*1000))
                 self.recValida.acquire(blocking=False) #Bloqueamos el poder recibir nuevas recompensas
                 
                 self.estadoAnterior = estado
@@ -130,7 +136,7 @@ class HiloQLearning():
     def guardarTablaQ(self):
         #Guardar la tablaQ en un archivo, almacenando la versión y algoritmo en la cabecera.
         fecha = strftime("%Y-%m-%d_%H.%M.%S", gmtime())
-        nombreArchivo = 'savedTables\TablaQ_{fecha}_{algoritmo}_{version}.txt'.format(fecha=fecha, \
+        nombreArchivo = 'savedTables{separador}TablaQ_{fecha}_{algoritmo}_{version}.txt'.format(separador= self.variablesGlobales.separadorCarpetas, fecha=fecha, \
            algoritmo = nombreAlgoritmo, version= self.variablesGlobales.version)
         
         cabecera = 'TablaQ rA= {rA} gamma= {gamma}'.format(rA= self.rA, gamma= self.gamma)

@@ -1,4 +1,7 @@
 from lib.apiControl import ApiControlRobot
+
+from lib.singleton import SingletonVariables
+
 from controller import Robot
 from controller import Camera
 from controller import Supervisor
@@ -143,6 +146,8 @@ class ApiWebots(ApiControlRobot):
         self.ruedaIzq.setVelocity(0)
         self.ruedaDer.setPosition(float('inf'))
         self.ruedaDer.setVelocity(0)
+
+        SingletonVariables().parado = False
 
     def waypoint(self):
 

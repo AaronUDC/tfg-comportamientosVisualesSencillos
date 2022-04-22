@@ -7,6 +7,8 @@ import math
 from threading import Thread
 import threading
 
+from lib.singleton import SingletonVariables
+
 angulosDefecto = np.array([-30, -10,-5, 0, 5, 10, 30])
 
 widePercent = 0.1
@@ -53,7 +55,7 @@ class HiloLineas:
 			# con las operaciones de openCV
 			
 			#Analisis del tiempo requerido para el procesado
-			#t1 = time.time()
+            #t0 = time.time()
 			
 			# Agregamos un desenfoque gausiano para minimizar los artefactos pequenos
             imgs = cv2.GaussianBlur(imgs,(5,5),0, borderType = cv2.BORDER_REPLICATE)
@@ -73,7 +75,6 @@ class HiloLineas:
             mask = 255-mask
             
             mask2 = np.zeros_like(mask)
-            
             #Obtener contornos
             cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             
@@ -111,6 +112,7 @@ class HiloLineas:
                 
                 else:
                     (rows, cols) = mask.shape
+
                     [vx, vy, x, y] = cv2.fitLine(mayorContorno, cv2.DIST_L1, 0, 0.01, 0.01)
                     
                     #Obtener el punto mas a la izquierda y mas a la derecha
@@ -137,6 +139,8 @@ class HiloLineas:
                     
                 
                     cv2.line(mask2,(cols-1, righty),(0,lefty), (127), 1)
+                    
+            #t1 = time.time()
             
             #actualizamos la ultima imagen almacenada
             self.lastImg = mask2
@@ -144,7 +148,9 @@ class HiloLineas:
             
             if self.lock.locked():
                 self.lock.release() #Liberamos los datos
-
+                
+            #print(1/(t1-t0), self.index)
+            
     def getNumEstados(self):
         return self.angulos.size * 3 + 1
         
@@ -154,7 +160,8 @@ class HiloLineas:
 
         self.lock.acquire() #Nos ponemos a la espera si el thread está bloqueado
 		#Guardar la ultima imagen almacenada en un archivo, incluyendo el angulo e indice asignado.
-
+        
+        variablesGlobales = SingletonVariables()
 
 
         if self.angulo is None:
@@ -164,8 +171,8 @@ class HiloLineas:
             nombre = 'manual_{n}_{angulo:.2f}_{index}.jpg'.format(n=self.nFoto, angulo=self.angulo, index=self.index)
             nombreRaw = 'manual_{n}_{angulo:.2f}_{index}_raw.jpg'.format(n=self.nFoto, angulo=self.angulo, index=self.index)
 
-        guardado1 = cv2.imwrite('{carpeta}/{nombre}'.format(carpeta=carpeta,nombre=nombre), self.lastImg)
-        guardado2 = cv2.imwrite('{carpeta}/{nombre}'.format(carpeta=carpeta,nombre=nombreRaw), self.lastRawImg)
+        guardado1 = cv2.imwrite('{carpeta}{separador}{nombre}'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombre), self.lastImg)
+        guardado2 = cv2.imwrite('{carpeta}{separador}{nombre}'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombreRaw), self.lastRawImg)
         if(guardado1 and guardado2):
             print('Guardado ', nombre)
         else:

@@ -3,7 +3,7 @@ class ApiControlRobot():
 
     def __init__(self):
         #Inicializar el robot
-        pass
+        self.hiloControl = None
     
     def update(self):
         #Actualizar los sistemas del robot
@@ -19,6 +19,9 @@ class ApiControlRobot():
     
     def getResolucionCam(self):
         pass
+
+    def setHiloControl(self, hiloControl):
+        self.hiloControl = hiloControl
 
     def setMotores(self, izqu, der):
         #Aplicar una velocidad a cada motor
