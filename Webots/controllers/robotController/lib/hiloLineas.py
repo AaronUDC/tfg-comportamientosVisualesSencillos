@@ -44,6 +44,19 @@ class HiloLineas:
             Thread(target=self.update, args=()).start()
             return self
 
+    def _mayorContorno(self, listaContornos):
+        # Recorrer una lista de contornos y devolver el más grande
+
+        areas = []
+        for contorno in listaContornos:
+            areas.append(cv2.contourArea(contorno))
+
+        mayorArea = np.max(areas)
+
+        return listaContornos[areas.index(mayorArea)]
+        
+        
+
     def update(self):
         while not self.stopped:
             img = self.apiControl.getDatosCamara() #Leer imagen del thread de la camara
@@ -90,15 +103,8 @@ class HiloLineas:
                 self.angulo = None
             else:
                 
-                mayorArea = 0
-                mayorContorno = None
-                
-                #Obtener el mayor contorno (Que deberia corresponder al camino)
-                for c in cnts:
-                    if mayorArea <= cv2.contourArea(c):
-                        mayorArea = cv2.contourArea(c)
-                        mayorContorno = c
-                
+                mayorContorno = self._mayorContorno(cnts) #Obtener el contorno más grande
+
                 cv2.drawContours(mask2, [mayorContorno], 0, (255), cv2.FILLED)
                 
                 if cv2.contourArea(mayorContorno) < mask.size * 0.1:

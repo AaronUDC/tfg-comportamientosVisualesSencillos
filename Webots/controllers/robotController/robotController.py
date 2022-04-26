@@ -3,6 +3,7 @@
 #from lib.apiWebots import ApiWebots
 #from lib.apiControl import ApiControlRobot
 
+from lib.hiloLineas2 import HiloLineas2
 from lib.hiloLineas import HiloLineas
 
 from lib.hiloQLearning import HiloQLearning
@@ -222,7 +223,7 @@ if __name__ == '__main__':
 
         resolucionCam = controlRobot.getResolucionCam()
 
-        hiloLineas = HiloLineas(controlRobot, resolucionCam).start()
+        hiloLineas = HiloLineas2(controlRobot, resolucionCam).start()
 
         hiloQLearning = HiloQLearning(hiloLineas.getNumEstados(),5,hiloLineas,rA,gamma) 
         hiloControl = HiloControl(hiloQLearning, controlRobot, hiloLineas)

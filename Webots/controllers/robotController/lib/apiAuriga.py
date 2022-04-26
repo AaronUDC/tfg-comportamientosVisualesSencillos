@@ -16,7 +16,7 @@ MOD_VEL = 20
 SENSORES_INFERIORES = [6,7]
 
 # Inicializar el hilo de la camara
-RESOLUCION_CAM = (48, 32)
+RESOLUCION_CAM = (80, 64)
     
 bluetooth = "/dev/tty.Makeblock-ELETSPP"
 usb = "/dev/ttyUSB0"

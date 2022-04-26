@@ -16,6 +16,7 @@ Viewpoint {
   orientation 0.5674007834878433 -0.7639298761214454 -0.3073556494786693 5.979886370341902
   position 0.7013978883767733 0.5174453106472074 2.1273281934274597
   follow "Khepera IV"
+  followType "None"
 }
 TexturedBackground {
 }
@@ -55,7 +56,7 @@ RectangleArena {
     }
     texture ImageTexture {
       url [
-        "D:/Documentos/Cole/Carrera/5/TFG/Webots/textures/TexturaSuelo.png"
+        "D:/Documentos/Cole/Carrera/5/TFG/tfg-comportamientosVisualesSencillos/Webots/textures/TexturaSuelo.png"
       ]
     }
     textureTransform TextureTransform {
