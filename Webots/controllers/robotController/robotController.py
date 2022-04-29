@@ -37,8 +37,8 @@ controlRobot = None
 
 resolucionCam = None
 
-rA = 0.5 #Ratio de aprendizaje
-gamma = 0.90
+rA = 0.7 #Ratio de aprendizaje
+gamma = 0.80
 
 #Inicializamos el singleton para almacenar variables globales entre objetos
 variablesGlobales = SingletonVariables()
@@ -79,7 +79,7 @@ def parseArgs():
     guardarTabla = config['DEFAULT'].getboolean('guardarTabla')
 
 
-    print(path)
+    #print(path)
     
 
     apiSt = config['DEFAULT']['API']

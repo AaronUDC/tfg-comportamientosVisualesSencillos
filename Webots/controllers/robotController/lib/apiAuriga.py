@@ -66,7 +66,7 @@ class ApiAuriga(ApiControlRobot):
     def update(self):
         #global sensorDer, sensorIz
         #Actualizar los sistemas del robot
-        self.reloj.tick(TIME_STEP)
+        #self.reloj.tick(TIME_STEP)
         
         self.izq = not self.izq
         #rint(self.reloj.get_fps())
@@ -82,9 +82,11 @@ class ApiAuriga(ApiControlRobot):
         
         if sensorDer is None or sensorIz is None:
             return False
-            
+        
+         
         return sensorDer != 3 or sensorIz != 3
-
+        
+        
     def getDatosCamara(self):
         #Obtener la ultima imagen capturada por la camara
         return self.hiloCam.read()

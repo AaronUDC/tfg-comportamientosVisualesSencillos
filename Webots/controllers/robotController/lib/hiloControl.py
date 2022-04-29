@@ -53,9 +53,11 @@ class HiloControl():
 			estado, _, _ = self.hiloLineas.read()
 
 			if self.hiloLineas.getNumEstados()-1 == estado:
-				self.hiloQLearning.setRecompensa(-10)
+				#self.pararRobot()
+				self.hiloQLearning.setRecompensa(-20)
+
 			else:
-				self.hiloQLearning.setRecompensa(0.5)
+				self.hiloQLearning.setRecompensa(0)
 
 	    
 	def stop(self):

@@ -7,12 +7,12 @@ from lib.singleton import SingletonVariables
 import time
 TAMANO_IMG = (80,46)
 
-carpeta= "D:\\Documentos\\Cole\\Carrera\\5\\TFG\\kernels"
+carpeta= "plantillas"
 singleton = SingletonVariables()
 
 singleton.separadorCarpetas = '\\'
 
-imgBasePath = "D:\\Documentos\\Cole\\Carrera\\5\TFG\\tfg-comportamientosVisualesSencillos\\Webots\\controllers\\robotController\\savedPhotos\\manual_0_-19.80_15_raw.jpg"
+imgBasePath = "savedPhotos\manual_1_190.00_24_raw.jpg"
 
 
 if __name__ == '__main__':
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         cv2.imshow("Kernel",image)
         cv2.waitKey(0)
     '''
-    print(hiloLineas.listaKernels[0].shape)
+    print(hiloLineas.listaKernels[0][0].shape)
     imgPrueba = cv2.imread(imgBasePath)
     
     print(imgPrueba.shape)
@@ -47,3 +47,5 @@ if __name__ == '__main__':
         cv2.imshow("Kernel",listaImgsSim[i])
         print(listaMedidaSim[i])
         cv2.waitKey(0)
+        
+    cv2.imwrite("mejor.png", listaImgsSim[mejorIndice]*255)

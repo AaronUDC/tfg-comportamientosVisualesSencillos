@@ -14,8 +14,8 @@ import numpy as np
 TIME_STEP = 30
 
 #Velocidades para el movimiento
-VEL_BASE = 5
-MOD_VEL = 2
+VEL_BASE = 3
+MOD_VEL = 1
 
 NUM_WAYPOINTS = 3 #Cantidad de puntos de restauracion que se usaran en el buffer
 STEP_INTERVAL = 40 #Cantidad de iteraciones entre cada waypoint
@@ -54,7 +54,7 @@ class ApiWebots(ApiControlRobot):
         for _ in range(NUM_WAYPOINTS):
             self.waypoint()
 
-        print(self.waypoints)
+        #print(self.waypoints)
 
 
     def update(self):
@@ -74,7 +74,7 @@ class ApiWebots(ApiControlRobot):
     def getDatosCamara(self):
         imagen = self.camera.getImage()
         if imagen is not None:
-            return np.frombuffer(self.camera.getImage(), np.uint8).reshape((self.camera.getHeight(), self.camera.getWidth(), 4))
+            return np.frombuffer(imagen, np.uint8).reshape((self.camera.getHeight(), self.camera.getWidth(), 4))
         
         return None
         #return self.camera.getImage()
