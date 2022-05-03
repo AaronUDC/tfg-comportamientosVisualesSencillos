@@ -10,9 +10,9 @@ TAMANO_IMG = (80,46)
 carpeta= "plantillas"
 singleton = SingletonVariables()
 
-singleton.separadorCarpetas = '\\'
+singleton.separadorCarpetas = '/'
 
-imgBasePath = "savedPhotos\manual_1_190.00_24_raw.jpg"
+imgBasePath = "savedPhotos/manual_1_179.00_17_raw.jpg"
 
 
 if __name__ == '__main__':
@@ -26,8 +26,8 @@ if __name__ == '__main__':
     imgPrueba = cv2.imread(imgBasePath)
     
     print(imgPrueba.shape)
-    cv2.imshow("In",imgPrueba)
-    cv2.waitKey(0)
+    #cv2.imshow("In",imgPrueba)
+    #cv2.waitKey(0)
 
     listaMedidaSim, listaImgsSim, (t0,t1,t2) = hiloLineas.processImage(imgPrueba)
 
@@ -38,14 +38,14 @@ if __name__ == '__main__':
     mejorMedida = np.max(listaMedidaSim)
     mejorIndice = listaMedidaSim.index(mejorMedida)
 
-    print('Tiempo 2:',round((time.time()-t2)*1000))
+    print('Tiempo 2:',round((time.perf_counter()-t2)*1000))
     
     print("Mejor medida e indice: ", mejorMedida, mejorIndice)
 
     for i in range(len(listaMedidaSim)):
         
-        cv2.imshow("Kernel",listaImgsSim[i])
+        #cv2.imshow("Kernel",listaImgsSim[i])
         print(listaMedidaSim[i])
-        cv2.waitKey(0)
+        #cv2.waitKey(0)
         
     cv2.imwrite("mejor.png", listaImgsSim[mejorIndice]*255)

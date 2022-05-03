@@ -10,8 +10,8 @@ import pygame
 TIME_STEP = 30
 
 #Velocidades para el movimiento
-VEL_BASE = 40
-MOD_VEL = 20
+VEL_BASE = 30
+MOD_VEL = 15
 
 SENSORES_INFERIORES = [6,7]
 
@@ -75,10 +75,10 @@ class ApiAuriga(ApiControlRobot):
 
     def getSensorLinea(self):
         global sensorDer, sensorIz
-        if self.izq:
-          sensorIz = self.auriga.get_line_sensor(SENSORES_INFERIORES[1])
-        else:
-          sensorDer = self.auriga.get_line_sensor(SENSORES_INFERIORES[0])
+        #if self.izq:
+        sensorIz = self.auriga.get_line_sensor(SENSORES_INFERIORES[1])
+        #else:
+        sensorDer = self.auriga.get_line_sensor(SENSORES_INFERIORES[0])
         
         if sensorDer is None or sensorIz is None:
             return False

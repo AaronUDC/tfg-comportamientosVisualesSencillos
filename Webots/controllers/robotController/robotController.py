@@ -126,20 +126,20 @@ def main():
     global done, parado, variablesGlobales
 
     while not done:
-        t0 = time.time()
+        t0 = time.perf_counter()
         controlRobot.update()
 
         #print(sensorDer,sensorIz)
         if controlRobot.getSensorLinea():
             hiloControl.pararRobot()
             
-        t1=time.time()
+        t1=time.perf_counter()
         
         #Gestion de los eventos para controlar el robot
         
         
         hiloControl.update()
-        t2=time.time()
+        t2=time.perf_counter()
         
         eventos = pygame.event.get()
         for event in eventos:
@@ -187,7 +187,7 @@ def main():
                 elif event.button == 5: 
                     time1=round((t1-t0)*1000)
                     time2=round((t2 - t1) * 1000)
-                    time3=round((time.time() - t2) * 1000)
+                    time3=round((time.perf_counter() - t2) * 1000)
                     
                     print('Tiempo para obtener sensor:', time1)
                     print('Tiempo update control:', time2)
@@ -241,14 +241,15 @@ if __name__ == '__main__':
         #hiloControl.start()
 
         main()
-
+        
+        
+        if guardarTabla:
+            hiloQLearning.guardarTablaQ()
     finally:
         print('Finalizando la ejecución')
         hiloLineas.stop()
         hiloQLearning.stop()
         #hiloControl.stop()
 
-        if guardarTabla:
-            hiloQLearning.guardarTablaQ()
 
         controlRobot.terminarRobot()

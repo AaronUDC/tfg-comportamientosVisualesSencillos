@@ -15,7 +15,7 @@ carpeta = 'plantillas'
 
 widePercent = 0
 
-PORCENTAJE_MAX = 0.15 # Umbral para considerar que la máscara más similar a la imagen no es suficientemente similar como para considerar que se ve la linea
+PORCENTAJE_MAX = 0.25 # Umbral para considerar que la máscara más similar a la imagen no es suficientemente similar como para considerar que se ve la linea
 
 class HiloLineas2():
     def __init__(self,control, dimensiones, carpetaKernels = carpeta):
@@ -75,16 +75,17 @@ class HiloLineas2():
         #Cambiamos el espacio de color a HSV
         imgGray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-        t0 = time.time()
+        t0 = time.perf_counter()
 
-        mask = cv2.adaptiveThreshold(imgGray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 41,10)
+        #mask = cv2.adaptiveThreshold(imgGray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 41,10)
+        _, mask = cv2.threshold(imgGray,50,255,cv2.THRESH_BINARY)
         
         #Recorte de la zona central inferior de la imagen
         #mask = mask[int((self.dimensiones[1])*0.4): int(self.dimensiones[1]-1), int(self.dimensiones[0]*(widePercent/2)):int(self.dimensiones[0]*(1-widePercent/2))]             
         
         
         mask = 1.0-mask/255.0 #Invertir la imagen y cambiar el rango a (0.0, 1.0)
-        t1 = time.time()
+        t1 = time.perf_counter()
 
         #Comprobar cual de los kernels se solapa mejor con la imagen
         listaImgsSim = []
@@ -98,7 +99,7 @@ class HiloLineas2():
             listaImgsSim.append(imgSimilitud)
             listaMedidaSim.append(medidaSimilitud)
 
-        t2 = time.time()
+        t2 = time.perf_counter()
 
         return listaMedidaSim, listaImgsSim, (t0,t1,t2)
 
@@ -166,7 +167,13 @@ class HiloLineas2():
         
         self.lock.acquire() #Nos ponemos a la espera si el thread está bloqueado
         
-        return self.index, self.lastImg, self.angulo
+        index = self.index
+        lastImg = self.lastImg
+        angulo = self.angulo
+        if self.lock.locked():
+            self.lock.release()
+        
+        return index, lastImg, angulo
         
         
     def stop(self):
