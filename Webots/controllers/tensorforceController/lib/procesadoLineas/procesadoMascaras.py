@@ -1,3 +1,4 @@
+from datetime import datetime
 from time import sleep
 import cv2
 #import lib.apiControl
@@ -24,17 +25,18 @@ class ProcesadoMascaras(HiloProcesadoImg):
         super().__init__(apiControl, dimensiones)
         
         self.numkernels = 0
-        self.listaKernels, self.listaPuntuacionMax = self._getKernels(carpetaKernels)
+        self.listaKernels, self.listaPuntuacionMin = self._getKernels(carpetaKernels)
         
         # Variables para poder guardar la ultima imagen capturada en memoria
         self.lastImg = None
         self.lastRawImg = None
         
         self.estadoAct= np.zeros(self.numkernels)
-        self.nFoto = 0
-        self.index = 0 #Indice del estado
+        self.mejorMedida = 0.0
+        self.mejorIndice = 0
+        self.viendoLinea = True
 
-        print(self.listaPuntuacionMax)
+        print(self.listaPuntuacionMin)
         #Lock
         self.lock = threading.Lock()
         
@@ -108,18 +110,16 @@ class ProcesadoMascaras(HiloProcesadoImg):
             
             self.lastImg = listaImgsSim[mejorIndice] * 255
             self.lastRawImg = img 
-
             self.estadoAct = np.array(listaMedidaSim)
+            self.mejorMedida = mejorMedida
+            self.mejorIndice = mejorIndice
             
-            
-            if (mejorMedida > self.listaPuntuacionMax[mejorIndice]):
+            if (mejorMedida > self.listaPuntuacionMin[mejorIndice]):
                 #Comprobar si la mejor imagen tiene una puntuación minima
-                self.index = mejorIndice
-                self.angulo = round(mejorMedida)
+                self.viendoLinea = True
             else:
                 #En caso contrario consideramos que no se ve la linea
-                self.index = self.getNumEstados()-1
-                self.angulo = -round(mejorMedida)
+                self.viendoLinea = False
                 
             
             #print(self.index)
@@ -144,29 +144,28 @@ class ProcesadoMascaras(HiloProcesadoImg):
         
         variablesGlobales = SingletonVariables()
 
-
-        if self.angulo is None:
-            nombre = 'manual_{n}_{index}.jpg'.format(n=self.nFoto, index=self.index)
-            nombreRaw = 'manual_{n}_{index}_raw.jpg'.format(n=self.nFoto, index=self.index)
+        hora = datetime.now()
+        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S.%f')
+        
+        if self.viendoLinea is True:
+            nombre = 'manual_mascaras_{fecha}_Linea_{puntos}_i{indice}'.format(fecha = horaSt,puntos = self.mejorMedida, indice=self.mejorIndice)
         else:
-            nombre = 'manual_{n}_{index}.jpg'.format(n=self.nFoto, index=self.index)
-            nombreRaw = 'manual_{n}_{index}_raw.jpg'.format(n=self.nFoto, index=self.index)
+            nombre = 'manual_mascaras_{fecha}_NOLinea_{puntos}_i{indice}'.format(fecha = horaSt,puntos = self.mejorMedida, indice=self.mejorIndice)
 
-        guardado1 = cv2.imwrite('{carpeta}{separador}{nombre}'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombre), self.lastImg)
-        guardado2 = cv2.imwrite('{carpeta}{separador}{nombre}'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombreRaw), self.lastRawImg)
+
+        guardado1 = cv2.imwrite('{carpeta}{separador}{nombre}.jpg'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombre), self.lastImg)
+        guardado2 = cv2.imwrite('{carpeta}{separador}{nombre}_raw.jpg'.format(carpeta=carpeta, separador=variablesGlobales.separadorCarpetas ,nombre=nombre), self.lastRawImg)
         if(guardado1 and guardado2):
             print('Guardado ', nombre)
         else:
             print("No se ha podido guardar la imagen")
-        self.nFoto += 1
-        #print("Tiempo medio (s): ", self.media, " fps: ", 1/self.media)
 
     def read(self):
         
         self.lock.acquire() #Nos ponemos a la espera si el thread está bloqueado
         
         estado = np.copy(self.estadoAct)
-        viendoLinea = self.index == self.getNumEstados()-1
+        viendoLinea = self.viendoLinea
         lastImg = np.copy(self.lastImg)
 
         if (self.lock.locked()):

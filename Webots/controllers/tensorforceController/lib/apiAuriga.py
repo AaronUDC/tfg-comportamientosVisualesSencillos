@@ -129,5 +129,5 @@ class ApiAuriga(ApiControlRobot):
     def reset(self):
         pass
 
-    def waypoint (self):    
+    def pushWaypoint (self):    
         pass

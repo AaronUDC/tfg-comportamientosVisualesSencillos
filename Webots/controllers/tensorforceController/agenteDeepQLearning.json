@@ -1,0 +1,5 @@
+{
+    "agent": "dqn",
+    "memory": 64,
+    "batch_size": 5
+}

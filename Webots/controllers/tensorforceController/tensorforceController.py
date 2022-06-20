@@ -7,10 +7,11 @@
 #from lib.apiControl import ApiControlRobot
 
 from tensorforce import Agent
+from lib.evaluacion import Evaluador
 from lib.entornoLineas import EntornoLineas
-from lib.hiloControl import HiloControl
 from lib.singleton import SingletonVariables
 from lib.procesadoLineas.procesadoMascaras import ProcesadoMascaras
+from lib.procesadoLineas.procesadoImagenBin import ProcesadoImagenBin
 
 import time
 from datetime import datetime
@@ -40,7 +41,7 @@ controlRobot = None
 resolucionCam = None
 
 rA = 0.7 #Ratio de aprendizaje
-gamma = 0.80
+gamma = 1
 
 #Inicializamos el singleton para almacenar variables globales entre objetos
 variablesGlobales = SingletonVariables()
@@ -61,16 +62,17 @@ else:
 path = None
 nombreAgente = 'agent'
 guardarTabla = False
-
+agenteDefecto = ''
 apiSt = 'apiControl'
 
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
+agente = None
 
 def parseArgs():
     #Parsear argumentos 
-    global path, guardarTabla, apiSt,nombreAgente
+    global path, guardarTabla, apiSt,nombreAgente, agenteDefecto
 
 
     config = configparser.ConfigParser()
@@ -82,22 +84,14 @@ def parseArgs():
     if config['DEFAULT']['nombreAgente'] != '':
         nombreAgente = config['DEFAULT']['nombreAgente']
 
+    if config['DEFAULT']['agenteDefecto'] != '':
+        agenteDefecto = config['DEFAULT']['agenteDefecto']
+
+    
     guardarTabla = config['DEFAULT'].getboolean('guardarTabla')
 
     apiSt = config['DEFAULT']['API']
 
-    parser = argparse.ArgumentParser(description= "Seguimiento de lineas mediante aprendizaje por refuerzo")
-
-    parser.add_argument('--path', help='Ruta del archivo que contiene la tablaQ', nargs='?', type=argparse.FileType('r') ,dest='path')
-    parser.add_argument('-s', action='store_true', help='Guardar la tabla Q al terminar la ejecución', dest='guardarTabla')
-
-    args = parser.parse_args()
-
-    if args.path is not None and args.path != '':
-        path = args.path
-
-    if args.guardarTabla:
-        guardarTabla = args.guardarTabla
     #print(args, path, guardarTabla)
 
 
@@ -112,7 +106,7 @@ def cambiarCapturaFotos():
         print("Captura de fotos iniciada")
 
 def main(entorno, agente):
-    global done, parado, variablesGlobales
+    global done, parado, variablesGlobales, evaluadorRobot
     recompensa= 0
     estados = entorno.reset()
     terminal = False
@@ -166,7 +160,7 @@ def main(entorno, agente):
                     hiloProcesadoLineas.printUltimaFotog()
                 elif event.button == 3: # Btn Y
                     #Hacer un print de la tabla Q
-                    print("Datos del conocimiento")
+                    '''print("Datos del conocimiento")
                     print("Recompensa =", recompensa)
                     print("Estados =", estados)
                     print("Acciones =", acciones)
@@ -176,7 +170,12 @@ def main(entorno, agente):
                     print(agente.get_specification())
                     print("Tensores")
                     print(agente.tracked_tensors())
-                    #print(hiloQLearning.tablaQ)
+                    '''
+                    print("Evaluacion")
+                    print("Recompensa acumulada descontada gamma=", gamma)
+                    print(evaluadorRobot.getRecompensaAcumuladaDescontada(gamma))
+                    print("Refuerzoas negativos:", evaluadorRobot.getNumRefuerzosNegativos())
+                    print("Estados terminales:", evaluadorRobot.getNumEstadosTerminales())
 
                 elif event.button == 6:	#Btn BACK
                     done = True
@@ -184,19 +183,16 @@ def main(entorno, agente):
                 elif event.button == 4: #Btn LB
                     cambiarCapturaFotos()
 
-                '''elif event.button == 5: 
-                   time1=round((t1-t0)*1000)
-                    time2=round((t2 - t1) * 1000)
-                    time3=round((time.time() - t2) * 1000)
-                    
-                    print('Tiempo para obtener sensor:', time1)
-                    print('Tiempo update control:', time2)
-                    print('Tiempo eventos:', time3)
-                    print('Total', time1 + time2 + time3)'''
+                
         if not variablesGlobales.parado:
 
             acciones = agente.act(states= estados)
+            estadoAnt= estados
             estados, terminal, recompensa = entorno.execute(actions = acciones)
+
+            #print(estados)
+
+            evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
 
             agente.observe(terminal = terminal, reward = recompensa)
 
@@ -246,17 +242,19 @@ if __name__ == '__main__':
         variablesGlobales.control = controlRobot
 
         resolucionCam = controlRobot.getResolucionCam()
+        
+        evaluadorRobot = Evaluador()
 
-        hiloProcesadoLineas = ProcesadoMascaras(controlRobot,controlRobot.getResolucionCam())
+        hiloProcesadoLineas = ProcesadoImagenBin(controlRobot,controlRobot.getResolucionCam())
         hiloProcesadoLineas.start()
         #hiloControl = HiloControl(hiloQLearning, controlRobot, hiloLineas)
 
         entorno = EntornoLineas(controlRobot,hiloProcesadoLineas)
 
-        agente = None
+        
         if path is None:
             print("Creando un agente nuevo")
-            agente = Agent.create(agent='agent.json', environment=entorno)
+            agente = Agent.create(agent=agenteDefecto, environment=entorno)
         else:
             print("Cargando agente ", nombreAgente,' de ', path)
             agente = Agent.load(directory = path, filename= nombreAgente)

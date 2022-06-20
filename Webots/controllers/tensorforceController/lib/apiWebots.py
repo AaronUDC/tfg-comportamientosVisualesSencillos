@@ -1,6 +1,9 @@
+from re import S
 from lib.apiControl import ApiControlRobot
 
 from lib.singleton import SingletonVariables
+import numpy as np
+from numpy import linalg
 
 from controller import Robot
 from controller import Camera
@@ -17,14 +20,17 @@ TIME_STEP = 30
 VEL_BASE = 3
 MOD_VEL = 1
 
-NUM_WAYPOINTS = 3 #Cantidad de puntos de restauracion que se usaran en el buffer
+NUM_WAYPOINTS = 5 #Cantidad de puntos de restauracion que se usaran en el buffer
 STEP_INTERVAL = 40 #Cantidad de iteraciones entre cada waypoint
+
+DISTANCIA_MIN_INICIO = 0.1 #Distancia mínima (m) al punto de inicio del robot para comprobar cuando se da una vuelta.
 
 #SENSORES_INFERIORES = ["left light sensor", "right light sensor"]
 SENSORES_INFERIORES = ["ground left infrared sensor", "ground right infrared sensor"]
 class ApiWebots(ApiControlRobot):
 
     def __init__(self):
+        ApiControlRobot.__init__(self)
         #Inicializar el robot
         self.robot = Supervisor()
         #Inicializar Camara
@@ -52,10 +58,17 @@ class ApiWebots(ApiControlRobot):
 
         #Inicializamos los puntos de restauracion
         for _ in range(NUM_WAYPOINTS):
-            self.waypoint()
+            self.pushWaypoint()
 
         #print(self.waypoints)
 
+        #Punto inicial
+        self.puntoInicial = self.getWaypoint()
+        self.visitandoMeta = True
+        
+        self.vuelta = 0 #TODO: Esto mejor en el padre, ya que se debería poder usar en todas las implementaciones.
+
+    
 
     def update(self):
         
@@ -63,7 +76,41 @@ class ApiWebots(ApiControlRobot):
         self.stepCount = (self.stepCount +1) % STEP_INTERVAL
 
         if self.stepCount == 0:
-            self.waypoint()
+            self.pushWaypoint()
+
+        #TODO: Contador de vueltas.
+        #Obtener posición actual
+        (posActual, dirActual) = self.getWaypoint()
+        posActualArr = np.array(posActual)
+        (posMeta, dirMeta) = self.puntoInicial
+        posMetaArr = np.array(posMeta)
+
+        distanciaAMeta = linalg.norm(posMetaArr- posActualArr)
+        #print(distanciaAMeta)
+
+        if distanciaAMeta < DISTANCIA_MIN_INICIO:
+            if not self.visitandoMeta:
+                self.visitandoMeta = True
+                self.vuelta += 1
+                print("Vuelta:", self.vuelta)
+        else:
+            if distanciaAMeta > DISTANCIA_MIN_INICIO and self.visitandoMeta:
+                self.visitandoMeta = False
+                #print("Nueva vuelta")
+        #Combrobar si se encuentra cerca de la meta
+            #Si se encuentra cerca sumar una vuelta si no se está visitando y marcar que se está visitando
+            #Si se aleja de la meta (igual un poco más del mínimo) y se está visitando, marcar que no se está visitando
+
+        
+            
+    #TODO: Get Vuelta
+
+    #TODO: Set Vuelta
+
+    def getTime(self):
+        #Devolver el tiempo de la simulacion en segundos
+        return self.robot.getTime()
+        
 
     def getSensorLinea(self):
         der = self.sensorLineaDer.getValue()
@@ -135,7 +182,7 @@ class ApiWebots(ApiControlRobot):
         
         #Reiniciamos todos los otros puntos a este
         for _ in range(NUM_WAYPOINTS):
-            self.waypoint()
+            self.pushWaypoint()
 
         #Reiniciamos las físicas, para evitar comportamientos extraños
         self.robot.simulationResetPhysics()
@@ -149,8 +196,11 @@ class ApiWebots(ApiControlRobot):
 
         SingletonVariables().parado = False
 
-    def waypoint(self):
+        #TODO: Si se resetea, pensar en si solo resetear el contador de vueltas, 
+        # o además colocar un nuevo punto de inicio en el lugar en el que se recupera el robot.
+        self.setVuelta(0)
 
+    def getWaypoint(self):
         if not self.robot.getSupervisor(): #Comprobar si el robot es un supervisor
             return
         
@@ -158,14 +208,23 @@ class ApiWebots(ApiControlRobot):
         nodoRobot = self.robot.getFromDef('robot')
         transField = nodoRobot.getField('translation')
         rotField = nodoRobot.getField('rotation')
+        #Añadimos una nueva posición y rotación a la cola
+        pos = transField.getSFVec3f()
+        rot = rotField.getSFRotation()
+
+        return (pos, rot)
+
+    def pushWaypoint(self):
+
+        if not self.robot.getSupervisor(): #Comprobar si el robot es un supervisor
+            return
+        
+        waypoint = self.getWaypoint()
 
         #Eliminamos el elemento más antiguo si la cola está llena
         if len(self.waypoints) >= NUM_WAYPOINTS:
             self.waypoints.pop(0)
         
-        #Añadimos una nueva posición y rotación a la cola
-        pos = transField.getSFVec3f()
-        rot = rotField.getSFRotation()
-        self.waypoints.append((pos, rot))
+        self.waypoints.append(waypoint)
         
 

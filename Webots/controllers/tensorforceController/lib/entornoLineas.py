@@ -49,8 +49,8 @@ class EntornoLineas(Environment):
         sleep(0.05)
         #self.reanudarRobot()
         self.controladorRobot.reset()
-
-        return self.hiloProcesado.getEstadoAct()
+        next_state, viendoLinea, lastImg = self.hiloProcesado.read()
+        return next_state
 
     def execute(self, actions):
         
@@ -65,15 +65,15 @@ class EntornoLineas(Environment):
         #Obtenemos el estado actual
         #next_state = self.hiloProcesado.getEstadoAct()
         next_state, viendoLinea, lastImg = self.hiloProcesado.read()
-
+        
         #Establecer recompensas
         if (self.controladorRobot.getSensorLinea()):
             #Si se ha salido de la línea, es un estado terminal
-            reward = -10
-            terminal = True  
-        elif viendoLinea:
-            #Penalizar si no se puede ver la linea
             reward = -20
+            terminal = True  
+        elif not viendoLinea:
+            #Penalizar si no se puede ver la linea
+            reward = -10
 
         else:
             #Recompensa por seguir la linea normal
