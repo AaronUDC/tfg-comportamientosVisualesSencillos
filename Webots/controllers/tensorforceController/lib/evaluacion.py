@@ -1,9 +1,16 @@
 
+import os
+import numpy as np
+import pandas as pd
+from datetime import datetime
 
+from lib.singleton import SingletonVariables
 class Evaluador:
 
     def __init__(self, nombreAgente):
+
         self.nombreAgente = nombreAgente
+
         self.episodio_tiempo = list()
         self.episodio_estados = list()
         self.episodio_acciones = list()
@@ -39,10 +46,27 @@ class Evaluador:
         return sum(refuerzo > 0 for refuerzo in self.episodio_refuerzos) 
 
 
-    def guardarEnDisco(self, ruta):
-        #TODO: Funcion que almacena los datos en un archivo en el disco (Pensar el formato del archivo)
+    def guardarEpisodio(self, ruta):
+        
+        if not os.path.exists(ruta):
+            os.makedirs(ruta)
+            print("se ha creado una carpeta en:", ruta)
+        
+        #Creamos el array de datos en formato CSV
+        df = pd.DataFrame({
+            'tiempo': self.episodio_terminales,
+            'estados': self.episodio_estados,
+            'acciones': self.episodio_acciones,
+            'terminales': self.episodio_terminales,
+            'refuerzos': self.episodio_refuerzos,
+        })
 
-        pass
-        
-        
-        
+        variablesGlobales = SingletonVariables()
+
+        hora = datetime.now()
+        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+        nombreArchivo = 'evaluacion_agente_{agente}_{fecha}.csv'.format(agente= self.nombreAgente,fecha= horaSt)
+
+        formatoCSV = df.to_csv('{carpeta}{separador}{nombre}'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas ,nombre=nombreArchivo))
+        if (formatoCSV is not None):
+            print("se han guardado los datos de validación en:", nombreArchivo)

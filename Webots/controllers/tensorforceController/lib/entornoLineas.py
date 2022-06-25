@@ -42,7 +42,7 @@ class EntornoLineas(Environment):
     def reset(self):
 
         if not self.variablesGlobales.parado:
-            print("se ha detenido el robot")
+            #print("se ha detenido el robot")
             self.variablesGlobales.parado = True
             self.controladorRobot.setMotores(0,0)
 

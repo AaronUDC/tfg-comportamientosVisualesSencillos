@@ -28,6 +28,8 @@ import pygame
 from pygame.locals import *
 
 
+NUM_VUELTAS = 3
+
 done = False
 
 parado = False
@@ -58,13 +60,17 @@ else:
     variablesGlobales.separadorCarpetas = '/'
 
 
-#Ruta a la tablaQ
-path = None
+#Variables de configuración
+rutaAgente = None
 nombreAgente = 'agent'
-guardarTabla = False
+guardarAgente = False
 agenteDefecto = ''
 apiSt = 'apiControl'
 
+#Variables para la evaluacion
+guardarEvaluacion = False
+rutaEvaluacion = None
+evaluadorRobot = None
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
@@ -72,14 +78,14 @@ agente = None
 
 def parseArgs():
     #Parsear argumentos 
-    global path, guardarTabla, apiSt,nombreAgente, agenteDefecto
+    global rutaAgente, guardarAgente, guardarEvaluacion, apiSt,nombreAgente, agenteDefecto, rutaEvaluacion
 
 
     config = configparser.ConfigParser()
     config.read('config.ini')
 
     if config['DEFAULT']['directorioAgente'] != '':
-        path = config['DEFAULT']['directorioAgente']
+        rutaAgente = config['DEFAULT']['directorioAgente']
 
     if config['DEFAULT']['nombreAgente'] != '':
         nombreAgente = config['DEFAULT']['nombreAgente']
@@ -88,7 +94,12 @@ def parseArgs():
         agenteDefecto = config['DEFAULT']['agenteDefecto']
 
     
-    guardarTabla = config['DEFAULT'].getboolean('guardarTabla')
+    guardarAgente = config['DEFAULT'].getboolean('guardarAgente')
+
+    guardarEvaluacion = config['EVALUACION'].getboolean('guardarEvaluacion')
+    
+    if config['EVALUACION']['rutaEvaluacion'] != '':
+        rutaEvaluacion = config['EVALUACION']['rutaEvaluacion']
 
     apiSt = config['DEFAULT']['API']
 
@@ -183,7 +194,10 @@ def main(entorno, agente):
                 elif event.button == 4: #Btn LB
                     cambiarCapturaFotos()
 
-                
+        
+        #TODO: Actualizar la velocidad base y de giro con la cruceta del mando        
+        (x,y) = mando.get_hat(0)
+        
         if not variablesGlobales.parado:
 
             acciones = agente.act(states= estados)
@@ -195,10 +209,14 @@ def main(entorno, agente):
             evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
 
             agente.observe(terminal = terminal, reward = recompensa)
+            
 
         if terminal: 
             estados = entorno.reset()
             terminal = False
+
+        if controlRobot.getVuelta() >= NUM_VUELTAS:
+            done = True
 
 
 
@@ -234,6 +252,7 @@ if __name__ == '__main__':
             mando.init()
             joystickEnabled = True
             print("MandoActivado")
+            
 
         time.sleep(0.2)
 
@@ -243,7 +262,7 @@ if __name__ == '__main__':
 
         resolucionCam = controlRobot.getResolucionCam()
         
-        evaluadorRobot = Evaluador()
+        evaluadorRobot = Evaluador(nombreAgente)
 
         hiloProcesadoLineas = ProcesadoImagenBin(controlRobot,controlRobot.getResolucionCam())
         hiloProcesadoLineas.start()
@@ -252,12 +271,12 @@ if __name__ == '__main__':
         entorno = EntornoLineas(controlRobot,hiloProcesadoLineas)
 
         
-        if path is None:
+        if rutaAgente is None:
             print("Creando un agente nuevo")
             agente = Agent.create(agent=agenteDefecto, environment=entorno)
         else:
-            print("Cargando agente ", nombreAgente,' de ', path)
-            agente = Agent.load(directory = path, filename= nombreAgente)
+            print("Cargando agente ", nombreAgente,' de ', rutaAgente)
+            agente = Agent.load(directory = rutaAgente, filename= nombreAgente)
 
         main(entorno, agente)
 
@@ -265,9 +284,11 @@ if __name__ == '__main__':
 
         print('Finalizando la ejecución')
 
-        if guardarTabla:
+        if guardarAgente:
             print(agente.save(directory="tmp", filename="tensorforce"))
 
+        if guardarEvaluacion:
+            evaluadorRobot.guardarEpisodio(rutaEvaluacion)
 
         entorno.close()
         agente.close()
