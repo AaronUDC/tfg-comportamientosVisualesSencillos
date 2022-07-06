@@ -40,8 +40,8 @@ class ApiWebots(ApiControlRobot):
         self.sensorLineaIzq = self.robot.getDevice(SENSORES_INFERIORES[0])
         self.sensorLineaDer = self.robot.getDevice(SENSORES_INFERIORES[1])
 
-        self.sensorLineaIzq.enable(TIME_STEP * 4)
-        self.sensorLineaDer.enable(TIME_STEP * 4)
+        self.sensorLineaIzq.enable(TIME_STEP)
+        self.sensorLineaDer.enable(TIME_STEP)
 
         #Inicializar ruedas
         self.ruedaIzq = self.robot.getDevice('left wheel motor')

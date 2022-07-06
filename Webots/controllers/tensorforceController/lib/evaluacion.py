@@ -59,15 +59,16 @@ class Evaluador:
 
         listaRutas=list()
 
-        for (estado,tiempo) in  zip(self.episodio_estados,self.episodio_tiempo):
-
-            rutaArchivo = "{ruta}{separador}state_{agente}_{hora}_{tiempo:010.3f}.png".format(
+        for (i,(estado,tiempo)) in  enumerate(zip(self.episodio_estados,self.episodio_tiempo)):
+            nombreArchivo = "state_{agente}_{hora}.{fotograma:06}.png".format(
+                agente = self.nombreAgente, hora = horaSt, tiempo = tiempo, fotograma= i)
+            rutaArchivo = "{ruta}{separador}{archivo}".format(
                 ruta = rutaEstados, separador = variablesGlobales.separadorCarpetas,
-                agente = self.nombreAgente, hora = horaSt, tiempo = tiempo)
+                archivo = nombreArchivo)
 
             print(rutaArchivo)
             cv2.imwrite(rutaArchivo, estado)
-            listaRutas.append(rutaArchivo)
+            listaRutas.append(nombreArchivo)
 
         return listaRutas
 
