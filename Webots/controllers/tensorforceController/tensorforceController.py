@@ -121,7 +121,8 @@ def main(entorno, agente):
     recompensa= 0
     estados = entorno.reset()
     terminal = False
-
+    
+    crucetaSuelta = True
     while not done:
         
         eventos = pygame.event.get()
@@ -175,13 +176,14 @@ def main(entorno, agente):
                     print("Recompensa =", recompensa)
                     print("Estados =", estados)
                     print("Acciones =", acciones)
+                    '''
                     print("Arquitectura")
                     print(agente.get_architecture())
                     print("Especificacion")
                     print(agente.get_specification())
                     print("Tensores")
                     print(agente.tracked_tensors())
-                    '''
+                    
                     print("Evaluacion")
                     print("Recompensa acumulada descontada gamma=", gamma)
                     print(evaluadorRobot.getRecompensaAcumuladaDescontada(gamma))
@@ -195,9 +197,17 @@ def main(entorno, agente):
                     cambiarCapturaFotos()
 
         
-        #TODO: Actualizar la velocidad base y de giro con la cruceta del mando        
+        #TODO: Actualizar la velocidad base y de giro con la cruceta del mando
+             
         (x,y) = mando.get_hat(0)
-        
+        if x == 0 and y==0:
+            crucetaSuelta = True
+
+        if (x != 0 or y != 0):
+            if crucetaSuelta:
+                controlRobot.incrementarVelocidades(y,x)
+                print("Velocidad base:", controlRobot.getVelocidadBase(),"Modificador velocidad: ", controlRobot.getModificadorVelocidad())
+            crucetaSuelta = False
         if not variablesGlobales.parado:
 
             acciones = agente.act(states= estados)
@@ -273,7 +283,7 @@ if __name__ == '__main__':
         
         if rutaAgente is None:
             print("Creando un agente nuevo")
-            agente = Agent.create(agent=agenteDefecto, environment=entorno)
+            agente = Agent.create(agent= agenteDefecto, environment= entorno)
         else:
             print("Cargando agente ", nombreAgente,' de ', rutaAgente)
             agente = Agent.load(directory = rutaAgente, filename= nombreAgente)

@@ -1,4 +1,3 @@
-from re import S
 from lib.apiControl import ApiControlRobot
 
 from lib.singleton import SingletonVariables
@@ -30,7 +29,7 @@ SENSORES_INFERIORES = ["ground left infrared sensor", "ground right infrared sen
 class ApiWebots(ApiControlRobot):
 
     def __init__(self):
-        ApiControlRobot.__init__(self)
+        ApiControlRobot.__init__(self, VEL_BASE,MOD_VEL)
         #Inicializar el robot
         self.robot = Supervisor()
         #Inicializar Camara
@@ -138,20 +137,20 @@ class ApiWebots(ApiControlRobot):
 
         #print(accion)
         if accion == 0:
-            self.setMotores(VEL_BASE , VEL_BASE) #Avanzar
+            self.setMotores(self.velocBase , self.velocBase) #Avanzar
 
         elif accion == 1:
             
-            self.setMotores(VEL_BASE - MOD_VEL, VEL_BASE + MOD_VEL) #Girar a la derecha
+            self.setMotores(self.velocBase - self.modificadorVeloc, self.velocBase + self.modificadorVeloc) #Girar a la derecha
 
         elif accion == 2:
-            self.setMotores(VEL_BASE + MOD_VEL, VEL_BASE - MOD_VEL) #Girar a la izquierda
+            self.setMotores(self.velocBase + self.modificadorVeloc, self.velocBase - self.modificadorVeloc) #Girar a la izquierda
             
         elif accion == 3:
-            self.setMotores(VEL_BASE - MOD_VEL * 2, VEL_BASE + MOD_VEL * 2) #Girar fuerte a la derecha
+            self.setMotores(self.velocBase - self.modificadorVeloc * 2, self.velocBase + self.modificadorVeloc * 2) #Girar fuerte a la derecha
 
         elif accion == 4:
-            self.setMotores(VEL_BASE + MOD_VEL * 2, VEL_BASE - MOD_VEL * 2) #Girar fuerte a la izquierda
+            self.setMotores(self.velocBase + self.modificadorVeloc * 2, self.velocBase - self.modificadorVeloc * 2) #Girar fuerte a la izquierda
 
     def terminarRobot(self):
         #Desactivar todos los dispositivos al terminar la ejecución

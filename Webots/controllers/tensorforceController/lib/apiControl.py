@@ -1,9 +1,12 @@
 
 class ApiControlRobot():
 
-    def __init__(self):
+    def __init__(self, velocBase, modificadorVeloc):
         #Inicializar el robot
         self.vuelta = 0
+
+        self.velocBase = velocBase
+        self.modificadorVeloc = modificadorVeloc
 
     
     def update(self):
@@ -22,6 +25,22 @@ class ApiControlRobot():
     def incrementarVuelta(self, incremento):
         self.vuelta += incremento
         
+    def setVelocidadBase(self, velocBase):
+        self.velocBase = velocBase
+
+    def setModificadorVelocidad(self, modificadorVeloc):
+        self.modificadorVeloc = modificadorVeloc
+
+    def incrementarVelocidades(self,incrementoBase, incrementoModif ):
+        self.velocBase += incrementoBase
+        self.modificadorVeloc += incrementoModif
+
+    def getVelocidadBase(self):
+        return self.velocBase
+
+    def getModificadorVelocidad(self):
+        return self.modificadorVeloc
+
     def getSensorLinea(self):
         #Obtener si los sensores de linea han detectado la linea
         pass

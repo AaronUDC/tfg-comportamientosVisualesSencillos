@@ -1,8 +1,11 @@
 
 import os
+import cv2
 import numpy as np
 import pandas as pd
 from datetime import datetime
+
+from requests import head
 
 from lib.singleton import SingletonVariables
 class Evaluador:
@@ -45,28 +48,56 @@ class Evaluador:
         #print(self.episodio_refuerzos)
         return sum(refuerzo > 0 for refuerzo in self.episodio_refuerzos) 
 
+    def _guardarEstados(self,ruta, hora):
+
+        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+
+        variablesGlobales = SingletonVariables()
+        rutaEstados = '{carpeta}{separador}states'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas )
+        if not os.path.exists(rutaEstados):
+            os.makedirs(rutaEstados)
+
+        listaRutas=list()
+
+        for (estado,tiempo) in  zip(self.episodio_estados,self.episodio_tiempo):
+
+            rutaArchivo = "{ruta}{separador}state_{agente}_{hora}_{tiempo:010.3f}.png".format(
+                ruta = rutaEstados, separador = variablesGlobales.separadorCarpetas,
+                agente = self.nombreAgente, hora = horaSt, tiempo = tiempo)
+
+            print(rutaArchivo)
+            cv2.imwrite(rutaArchivo, estado)
+            listaRutas.append(rutaArchivo)
+
+        return listaRutas
+
 
     def guardarEpisodio(self, ruta):
         
-        if not os.path.exists(ruta):
-            os.makedirs(ruta)
-            print("se ha creado una carpeta en:", ruta)
+        variablesGlobales = SingletonVariables()
+
+        hora = datetime.now()
+        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+
+        rutaEvaluacion = '{carpeta}{separador}{agente}_{fecha}'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas, agente = self.nombreAgente,fecha= horaSt)
+
+        if not os.path.exists(rutaEvaluacion):
+            os.makedirs(rutaEvaluacion)
+            print("se ha creado una carpeta en:", rutaEvaluacion)
         
+        listaRutas = self._guardarEstados(rutaEvaluacion, hora)
+
         #Creamos el array de datos en formato CSV
         df = pd.DataFrame({
-            'tiempo': self.episodio_terminales,
-            'estados': self.episodio_estados,
+            'tiempo': self.episodio_tiempo,
+            'estados': listaRutas,
             'acciones': self.episodio_acciones,
             'terminales': self.episodio_terminales,
             'refuerzos': self.episodio_refuerzos,
         })
 
-        variablesGlobales = SingletonVariables()
-
-        hora = datetime.now()
-        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
         nombreArchivo = 'evaluacion_agente_{agente}_{fecha}.csv'.format(agente= self.nombreAgente,fecha= horaSt)
 
-        formatoCSV = df.to_csv('{carpeta}{separador}{nombre}'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas ,nombre=nombreArchivo))
+        formatoCSV = df.to_csv('{carpeta}{separador}{nombre}'.format(carpeta=rutaEvaluacion, separador=variablesGlobales.separadorCarpetas ,nombre=nombreArchivo))
         if (formatoCSV is not None):
-            print("se han guardado los datos de validación en:", nombreArchivo)
+            print("se han guardado los datos de evaluación en:", nombreArchivo)
