@@ -1,0 +1,21 @@
+{
+    "agent": "dqn",
+    "memory": 64,
+    "batch_size": 5,
+    "network": [{
+            "type": "embedding",
+            "size": 48,
+            "num_embeddings" : 256,
+            "bias" : "true",
+            "activation" : "tanh"
+        },{
+            "type": "conv1d",
+            "size": 48,
+            "window" : 3,
+            "bias" : "true",
+            "activation" : "relu"
+        },{
+            "type": "pooling",
+            "reduction": "max"
+        }]
+}

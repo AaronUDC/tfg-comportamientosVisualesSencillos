@@ -1,0 +1,24 @@
+{
+    "agent": "dqn",
+    "memory": 64,
+    "batch_size": 5,
+    "network": [{
+        "type": "embedding",
+        "size": 48,
+        "num_embeddings" : 256,
+        "bias" : "true",
+        "activation" : "tanh"
+    },{
+        "type": "flatten"
+    },{
+        "type": "dense",
+        "size": 24,
+        "bias" : "true",
+        "activation" : "tanh"
+    },{
+        "type": "dense",
+        "size": 24,
+        "bias" : "true",
+        "activation" : "tanh"
+    }]
+}

@@ -8,11 +8,13 @@ from datetime import datetime
 from requests import head
 
 from lib.singleton import SingletonVariables
+from tensorforce.agents import Agent
 class Evaluador:
 
     def __init__(self, nombreAgente):
 
         self.nombreAgente = nombreAgente
+        self.agente = None
 
         self.episodio_tiempo = list()
         self.episodio_estados = list()
@@ -21,6 +23,8 @@ class Evaluador:
         self.episodio_refuerzos = list()
 
 
+    def setAgente(self, agente):
+        self.agente = agente
 
     def almacenarPaso(self,tiempo ,estado, acciones, terminal, refuerzo):
 
@@ -66,12 +70,27 @@ class Evaluador:
                 ruta = rutaEstados, separador = variablesGlobales.separadorCarpetas,
                 archivo = nombreArchivo)
 
-            print(rutaArchivo)
+            #print(rutaArchivo)
             cv2.imwrite(rutaArchivo, estado)
             listaRutas.append(nombreArchivo)
 
         return listaRutas
 
+    def _guardarAgente(self, ruta):
+
+        variablesGlobales = SingletonVariables()
+        rutaAgente= '{carpeta}{separador}agent'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas )
+        if not os.path.exists(rutaAgente):
+            os.makedirs(rutaAgente)
+
+        print(self.agente.save(directory=rutaAgente, filename=self.nombreAgente))
+
+        rutaAgenteModel= '{carpeta}{separador}agentModel'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas )
+        if not os.path.exists(rutaAgenteModel):
+            os.makedirs(rutaAgenteModel)
+
+        print(self.agente.save(directory=rutaAgenteModel, filename=self.nombreAgente, format = "saved-model"))
+        
 
     def guardarEpisodio(self, ruta):
         
@@ -87,6 +106,9 @@ class Evaluador:
             print("se ha creado una carpeta en:", rutaEvaluacion)
         
         listaRutas = self._guardarEstados(rutaEvaluacion, hora)
+
+        if self.agente is not None:
+            self._guardarAgente(rutaEvaluacion)
 
         #Creamos el array de datos en formato CSV
         df = pd.DataFrame({

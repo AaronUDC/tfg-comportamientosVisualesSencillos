@@ -1,0 +1,18 @@
+{
+    "agent": "dqn",
+    "memory": 64,
+    "batch_size": 5,
+    "network": [{
+        "type": "flatten"
+    },{
+        "type": "dense",
+        "size": 24,
+        "bias" : "true",
+        "activation" : "tanh"
+    },{
+        "type": "dense",
+        "size": 24,
+        "bias" : "true",
+        "activation" : "tanh"
+    }]
+}

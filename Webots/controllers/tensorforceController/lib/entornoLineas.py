@@ -18,6 +18,8 @@ class EntornoLineas(Environment):
         self.estados = self.hiloProcesado.getDictEstados() #Obtener la definición de los estados del hilo de procesado
         self.acciones = dict(type = 'int', num_values=5) #Definir las acciones posibles
 
+        self.primeraVez = True
+
     def states(self):
         #dict(type='float', shape=(8,))
         return self.estados
@@ -44,7 +46,7 @@ class EntornoLineas(Environment):
         if not self.variablesGlobales.parado:
             #print("se ha detenido el robot")
             self.variablesGlobales.parado = True
-            self.controladorRobot.setMotores(0,0)
+            self.controladorRobot.ejecutarAccion(6)
 
         sleep(0.05)
         #self.reanudarRobot()
@@ -55,10 +57,12 @@ class EntornoLineas(Environment):
     def execute(self, actions):
         
         terminal = False
-        
-        # Ejecutamos una acción
-        self.controladorRobot.ejecutarAccion(actions)
 
+        if not self.primeraVez:
+            # Ejecutamos una acción
+            self.controladorRobot.ejecutarAccion(actions)
+        else:
+            self.primeraVez = False
         #Actualizamos el robot
         self.controladorRobot.update()
         

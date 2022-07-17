@@ -34,7 +34,7 @@ class ApiWebots(ApiControlRobot):
         self.robot = Supervisor()
         #Inicializar Camara
         self.camera = self.robot.getDevice('cameraLinea')
-        self.camera.enable(TIME_STEP*4)
+        self.camera.enable(TIME_STEP)
         
         #Inicializar Sensores
         self.sensorLineaIzq = self.robot.getDevice(SENSORES_INFERIORES[0])
@@ -151,6 +151,9 @@ class ApiWebots(ApiControlRobot):
 
         elif accion == 4:
             self.setMotores(self.velocBase + self.modificadorVeloc * 2, self.velocBase - self.modificadorVeloc * 2) #Girar fuerte a la izquierda
+        
+        elif accion == 5:
+            self.setMotores(0,0) #Pararse
 
     def terminarRobot(self):
         #Desactivar todos los dispositivos al terminar la ejecución
@@ -197,7 +200,7 @@ class ApiWebots(ApiControlRobot):
 
         #TODO: Si se resetea, pensar en si solo resetear el contador de vueltas, 
         # o además colocar un nuevo punto de inicio en el lugar en el que se recupera el robot.
-        self.setVuelta(0)
+        self.setVuelta(-1)
 
     def getWaypoint(self):
         if not self.robot.getSupervisor(): #Comprobar si el robot es un supervisor
