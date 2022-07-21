@@ -46,7 +46,7 @@ class EntornoLineas(Environment):
         if not self.variablesGlobales.parado:
             #print("se ha detenido el robot")
             self.variablesGlobales.parado = True
-            self.controladorRobot.ejecutarAccion(6)
+            self.controladorRobot.ejecutarAccion(5)
 
         sleep(0.05)
         #self.reanudarRobot()
@@ -58,7 +58,7 @@ class EntornoLineas(Environment):
         
         terminal = False
 
-        if not self.primeraVez:
+        if not self.primeraVez and not self.variablesGlobales.parado:
             # Ejecutamos una acción
             self.controladorRobot.ejecutarAccion(actions)
         else:
@@ -71,14 +71,13 @@ class EntornoLineas(Environment):
         next_state, viendoLinea, lastImg = self.hiloProcesado.read()
         
         #Establecer recompensas
-        if (self.controladorRobot.getSensorLinea()):
+        if (self.controladorRobot.getSensorLinea())or self.variablesGlobales.parado:
             #Si se ha salido de la línea, es un estado terminal
             reward = -20
             terminal = True  
         elif not viendoLinea:
             #Penalizar si no se puede ver la linea
             reward = -10
-
         else:
             #Recompensa por seguir la linea normal
             reward = 0.5

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-from requests import head
 
 from lib.singleton import SingletonVariables
 from tensorforce.agents import Agent

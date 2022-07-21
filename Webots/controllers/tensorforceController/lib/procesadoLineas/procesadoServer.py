@@ -10,7 +10,7 @@ from lib.procesadoLineas.hiloProcesado import HiloProcesadoImg
 
 RESOLUCION_SALIDA_DEFECTO = (8,6)
 
-MIN_LINEA_VISIBLE = 0.25
+MIN_LINEA_VISIBLE = 0.10
 
 class ProcesadoServer(HiloProcesadoImg):
     
@@ -31,8 +31,11 @@ class ProcesadoServer(HiloProcesadoImg):
     def processImage(self, image):
 
         self.lastImg = image
-
-        sumImg = self.lastImg.sum()
+        
+        _,mask = cv2.threshold(cv2.erode(image,np.ones((2,2)),iterations=1), 60,255, cv2.THRESH_BINARY)
+        
+        
+        sumImg = mask.sum()
         #print(sumImg)
         if sumImg < self.sumaMinima:
             return image, True 
