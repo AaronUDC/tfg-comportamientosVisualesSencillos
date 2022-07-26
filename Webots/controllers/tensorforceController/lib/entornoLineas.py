@@ -7,15 +7,14 @@ import lib.apiControl
 
 class EntornoLineas(Environment):
 
-    def __init__(self, controladorRobot, hiloProcesado):
+    def __init__(self, controladorRobot):
         super().__init__()
 
         self.controladorRobot = controladorRobot
-        self.hiloProcesado = hiloProcesado
 
         self.variablesGlobales = SingletonVariables()
 
-        self.estados = self.hiloProcesado.getDictEstados() #Obtener la definición de los estados del hilo de procesado
+        self.estados = self.controladorRobot.getDictEstados() #Obtener la definición de los estados del hilo de procesado
         self.acciones = dict(type = 'int', num_values=5) #Definir las acciones posibles
 
         self.primeraVez = True
@@ -43,32 +42,32 @@ class EntornoLineas(Environment):
 
     def reset(self):
 
-        if not self.variablesGlobales.parado:
+        if self.variablesGlobales.parado:
             #print("se ha detenido el robot")
-            self.variablesGlobales.parado = True
             self.controladorRobot.ejecutarAccion(5)
 
         sleep(0.05)
         #self.reanudarRobot()
         self.controladorRobot.reset()
-        next_state, viendoLinea, lastImg = self.hiloProcesado.read()
+        next_state, viendoLinea, lastImg = self.controladorRobot.getEstado()
         return next_state
 
     def execute(self, actions):
         
         terminal = False
-
-        if not self.primeraVez and not self.variablesGlobales.parado:
+        #print("execute")
+        self.controladorRobot.ejecutarAccion(actions)
+        '''if not self.variablesGlobales.parado:
             # Ejecutamos una acción
-            self.controladorRobot.ejecutarAccion(actions)
+            
         else:
-            self.primeraVez = False
+            self.primeraVez = False'''
         #Actualizamos el robot
         self.controladorRobot.update()
         
         #Obtenemos el estado actual
         #next_state = self.hiloProcesado.getEstadoAct()
-        next_state, viendoLinea, lastImg = self.hiloProcesado.read()
+        next_state, viendoLinea, lastImg = self.controladorRobot.getEstado()
         
         #Establecer recompensas
         if (self.controladorRobot.getSensorLinea())or self.variablesGlobales.parado:

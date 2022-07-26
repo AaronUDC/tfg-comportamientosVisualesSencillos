@@ -4,7 +4,7 @@ class ApiControlRobot():
     def __init__(self, velocBase, modificadorVeloc):
         #Inicializar el robot
         self.vuelta = 0
-
+        self.hiloProcesado = None
         self.velocBase = velocBase
         self.modificadorVeloc = modificadorVeloc
 
@@ -48,6 +48,13 @@ class ApiControlRobot():
     def getDatosCamara(self):
         #Obtener la ultima imagen capturada por la camara
         pass
+
+    def getEstado(self):
+        
+        return self.hiloProcesado.read()
+
+    def getDictEstados(self):
+        return self.hiloProcesado.getDictEstados()
     
     def getResolucionCam(self):
         pass

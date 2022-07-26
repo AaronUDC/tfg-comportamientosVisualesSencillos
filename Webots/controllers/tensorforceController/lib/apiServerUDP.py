@@ -6,16 +6,16 @@ import socketserver
 import socket
 import numpy as np
 from datetime import datetime
+import time
+import math
 
 IP_PC, PORT_PC = "192.168.1.44", 9999
-IP_ROBOT, PORT_ROBOT  = "192.168.1.40", 9998
+IP_ROBOT, PORT_ROBOT  = "192.168.1.41", 9998
 PORT_MANDO = 9997
 
 def timestampMilis():
 	#Obtener la fecha y hora actual en milisegundos
-	hora = datetime.now()
-	milis = round(hora.timestamp() * 1000)
-	return milis
+	return  math.floor(time.process_time() * 1000)
 
 def millisToBytes(millis):
 	#Convertir un int representando los milisegundos desde Epoch a una cadena de 8 bytes.
@@ -37,7 +37,7 @@ class MyUDPHandler(socketserver.BaseRequestHandler):
         
         imgBytes = np.frombuffer(data[:-8], dtype=np.uint8)
         timestampBytes = data[-8:]
-
+        #print("Recibida")
         self.server.lastTimestamp = timestampBytes
         
 
@@ -62,7 +62,7 @@ class MyServer(socketserver.UDPServer):
         self.isTimeout = True
 
 
-class ApiServer2(ApiControlRobot):
+class ApiServerUDP(ApiControlRobot):
     def __init__(self):
         #Inicializar el robot
         ApiControlRobot.__init__(self, 0,0)
@@ -108,7 +108,7 @@ class ApiServer2(ApiControlRobot):
         print("Esto no deberia pasar")
     
     def ejecutarAccion(self, accion):
-        print("Enviado: ", accion)
+        #print("Enviado: ", accion)
         accionBytes= bytearray(np.array(([accion]), dtype=np.uint8).tobytes())
         dataBytes = bytearray(self.server.lastTimestamp)
         accionBytes.extend(dataBytes)

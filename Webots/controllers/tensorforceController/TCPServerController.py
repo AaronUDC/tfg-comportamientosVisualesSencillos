@@ -1,25 +1,20 @@
 
 
-
-
-
-#from lib.apiWebots import ApiWebots
-#from lib.apiControl import ApiControlRobot
-
+from threading import Thread
 from tensorforce import Agent
 from lib.evaluacion import Evaluador
 from lib.entornoLineas import EntornoLineas
 from lib.singleton import SingletonVariables
-from lib.procesadoLineas.procesadoMascaras import ProcesadoMascaras
-from lib.procesadoLineas.procesadoImagenBin import ProcesadoImagenBin
 from lib.procesadoLineas.procesadoServer import ProcesadoServer
+from lib.apiServerTCP import ApiServerTCP
+import lib.apiServerTCP as apiServer
 
 import time
 from datetime import datetime
 from time import gmtime, strftime
+import threading
+import socket
 
-import argparse
-import pathlib
 import configparser
 import platform
 
@@ -31,13 +26,13 @@ from pygame.locals import *
 
 NUM_VUELTAS = 5
 
-done = False
 
+done = False
 parado = False
 
 mando = None
-
 joystickEnabled = False
+socketMando = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 controlRobot = None
 
@@ -60,6 +55,7 @@ if platform.system() == 'Windows':
 else:
     variablesGlobales.separadorCarpetas = '/'
 
+paradaTerminal = False
 
 #Variables de configuración
 rutaAgente = None
@@ -76,6 +72,7 @@ evaluadorRobot = None
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
 agente = None
+entorno = None
 
 def parseArgs():
     #Parsear argumentos 
@@ -83,7 +80,7 @@ def parseArgs():
 
 
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    config.read('D:/Documentos/Cole/Carrera/5\TFG/tfg-comportamientosVisualesSencillos/Webots/controllers/tensorforceController/config.ini')
 
     if config['DEFAULT']['directorioAgente'] != '':
         rutaAgente = config['DEFAULT']['directorioAgente']
@@ -104,26 +101,54 @@ def parseArgs():
 
     apiSt = config['DEFAULT']['API']
 
-    #print(args, path, guardarTabla)
+def enviarOrdenMando(orden):
+    socketMando.sendto(np.array(([orden]), dtype=np.uint8).tobytes(), (controlRobot.dir[0], apiServer.PORT_MANDO))
 
 
-def cambiarCapturaFotos():
-    global variablesGlobales
-
-    if variablesGlobales.guardarFotos:
-        variablesGlobales.guardarFotos = False
-        print("Se ha parado la captura de fotos")
-    else:
-        variablesGlobales.guardarFotos = True
-        print("Captura de fotos iniciada")
-
-def main(entorno, agente):
-    global done, parado, variablesGlobales, evaluadorRobot
+def procesarRed():
+    
+    global done, parado, variablesGlobales, evaluadorRobot, entorno, agente, paradaTerminal
     recompensa= 0
     estados = entorno.reset()
+    print(estados)
     terminal = False
-    paradaTerminal = False
-    crucetaSuelta = True
+    variablesGlobales.parado = False
+    while not done:
+        #print (imagen)
+        if not variablesGlobales.parado:
+            if paradaTerminal:
+                #Si se ordena una parada desde el mando, se actúa acorde.
+                print("Parada Terminal")
+                paradaTerminal = False
+                variablesGlobales.parado = True
+
+            acciones = agente.act(states= estados)
+            #acciones= 4
+            estadoAnt= estados
+            estados, terminal, recompensa = entorno.execute(actions = acciones)
+
+            evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
+
+            agente.observe(terminal = terminal, reward = recompensa)
+
+
+            #Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
+            if terminal: 
+                estados = entorno.reset()
+                terminal = False
+
+            #Si damos NUM_VUELTAS, terminamos el robot.
+            if controlRobot.getVuelta() >= NUM_VUELTAS:
+                done = True
+        else:
+            print("Esperando")
+            time.sleep(0.3)
+
+
+
+def main():
+    global done, parado, variablesGlobales, evaluadorRobot, paradaTerminal
+
     while not done:
         
         eventos = pygame.event.get()
@@ -131,40 +156,30 @@ def main(entorno, agente):
             
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.KEYDOWN:
-                #Eventos de teclado
-                #Control general
-                if event.key == pygame.K_ESCAPE: 
-                    #Salir del programa pulsando ESC
-                    done = True
-                elif event.key == pygame.K_o:
-                    #Guardar el ultimo frame
-                    print("Se ha almacenado la imagen")
-                    hiloProcesado.printUltimaFotog()
-                elif event.key == pygame.K_p:
-                    #Hacer un print de la tabla Q
-                    print("Datos del conocimiento")
-                    print("Recompensa =", recompensa)
-                    print("Estados =", estados)
-                    print("Acciones =", acciones)
-                    print(agente.get_architecture())
-                    print(agente.get_specification())
-                    
-                    #print(hiloQLearning.tablaQ)
-                    
+
             elif event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 2:# Btn X
                     #Guardar el ultimo frame
                     print("Se ha almacenado la imagen")
                     hiloProcesado.printUltimaFotog()
-                    
+                elif event.button == 0: #Btn A
+                    #Volver a permitir el movimiento
+
+                    #Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
+                    print("Reanudado")
+                    variablesGlobales.parado = False
+                    paradaTerminal = False
+                      
+                    enviarOrdenMando(0) 
+
                 elif event.button == 1: #Btn B
-                    #Parada de emergencia
-                    if not variablesGlobales.parado:
-                        #Ordenar la detencion del bucle
-                        #hiloControl.pararRobot()
-                        print("Parado")
-                        paradaTerminal = True  
+                    #Parada de emergencias
+                    #Ordenar la detencion del bucle
+                    #hiloControl.pararRobot()
+                    print("Parado")
+                    
+                    paradaTerminal = True  
+                    enviarOrdenMando(1)
                 elif event.button == 3: # Btn Y
                     #Hacer un print de la tabla Q
                     '''print("Datos del conocimiento")
@@ -188,93 +203,12 @@ def main(entorno, agente):
                 elif event.button == 6:	#Btn BACK
                     done = True
 
-                elif event.button == 4: #Btn LB
-                    cambiarCapturaFotos()
-
-        
-        #TODO: Actualizar la velocidad base y de giro con la cruceta del mando
-             
-        (x,y) = mando.get_hat(0)
-        if x == 0 and y==0:
-            crucetaSuelta = True
-
-        if (x != 0 or y != 0):
-            if crucetaSuelta:
-                controlRobot.incrementarVelocidades(y,x)
-                print("Velocidad base:", controlRobot.getVelocidadBase(),"Modificador velocidad: ", controlRobot.getModificadorVelocidad())
-            crucetaSuelta = False
-            
-        if not variablesGlobales.parado:
-
-            acciones = agente.act(states= estados)
-            estadoAnt= estados
-            estados, terminal, recompensa = entorno.execute(actions = acciones)
-
-            if paradaTerminal:
-                recompensa = -20
-                terminal = True
-                paradaTerminal = False
-            #print(estados)
-
-            evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
-
-            agente.observe(terminal = terminal, reward = recompensa)
-        else:
-            controlRobot.update() 
-            controlRobot.ejecutarAccion(5)
-            
-        #Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
-        if terminal: 
-            estados = entorno.reset()
-            terminal = False
-        #Si damos NUM_VUELTAS, terminamos el robot.
-        if controlRobot.getVuelta() >= NUM_VUELTAS:
-            done = True
-
-        for event in eventos:
-            if event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0: #Btn A
-                    #Volver a permitir el movimiento
-                    if variablesGlobales.parado:
-                        #Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
-                        #hiloControl.reanudarRobot()
-                        print("Reanudado")
-                        variablesGlobales.parado = False
+       
+                
                         
-                elif event.button == 1: #Btn B
-                    #Parada de emergencia
-                    if not variablesGlobales.parado:
-                        #Ordenar la detencion del bucle
-                        #hiloControl.pararRobot()
-                        variablesGlobales.parado = True
-
-def seleccionarApiControl():
-    api = None
-    hiloProcesado = None
-
-    if apiSt == 'apiWebots':
-        from lib.apiWebots import ApiWebots
-        api =  ApiWebots()
-        hiloProcesado = ProcesadoImagenBin(api, api.getResolucionCam())
-
-    elif apiSt == 'apiServer':
-        from lib.apiServer import ApiServer
-
-        api = ApiServer()
-        hiloProcesado = ProcesadoServer(api,api.getResolucionCam())
-
-    else:
-        from lib.apiControl import ApiControlRobot
-        api = ApiControlRobot() # Por defecto devolvemos una api que no hace nada
-        hiloProcesado = ProcesadoImagenBin(api, api.getResolucionCam())
-
-    api.hiloProcesado = hiloProcesado
-
-    return api, hiloProcesado
-
-
 
 if __name__ == '__main__':
+        
     try:
 
         parseArgs()
@@ -295,18 +229,16 @@ if __name__ == '__main__':
 
         time.sleep(0.2)
 
-        controlRobot, hiloProcesado = seleccionarApiControl()
-        variablesGlobales.control = controlRobot
-
+        controlRobot = ApiServerTCP()
+        hiloProcesado = ProcesadoServer(controlRobot,controlRobot.getResolucionCam())
+        controlRobot.hiloProcesado = hiloProcesado
         resolucionCam = controlRobot.getResolucionCam()
         
         evaluadorRobot = Evaluador(nombreAgente)
 
-        hiloProcesado.start()
 
         entorno = EntornoLineas(controlRobot)
 
-        
         if rutaAgente is None:
             print("Creando un agente nuevo")
             agente = Agent.create(agent= agenteDefecto, environment= entorno)
@@ -314,7 +246,12 @@ if __name__ == '__main__':
             print("Cargando agente ", nombreAgente,' de ', rutaAgente)
             agente = Agent.load(directory = rutaAgente, filename= nombreAgente)
 
-        main(entorno, agente)
+        threadProcesarRed = threading.Thread(target=procesarRed)
+        threadProcesarRed.setDaemon(True)
+        threadProcesarRed.start()
+        print("Iniciado threadServidor: ", threadProcesarRed.name)
+
+        main()
 
     finally:
 
@@ -329,8 +266,11 @@ if __name__ == '__main__':
         if not guardarEvaluacion and guardarAgente:
             print(agente.save(directory="tmp", filename=nombreAgente))
 
+        threadProcesarRed.join(2)
+        
         entorno.close()
         agente.close()
 
+        
         hiloProcesado.stop()
         controlRobot.terminarRobot()

@@ -1,4 +1,5 @@
 
+from cProfile import label
 import string
 import cv2
 import numpy as np
@@ -17,23 +18,32 @@ def tiempoDeRecepcionMedio(datos):
     listaRecibidos = [paquete for paquete in datos if paquete[6] == True]
     #print(listaRecibidos)
     listaTiempos = list()
+    listaTimestamps = list()
+    listaTiemposProcesadoServer = list()
     sum = 0
     for paquete in listaRecibidos:
         tiempo = paquete[2] - paquete[1]
         listaTiempos.append(tiempo)
+        listaTiemposProcesadoServer.append(paquete[3])
+        listaTimestamps.append(paquete[1])
         sum += tiempo
 
     listaTiemposNp = np.array(listaTiempos)
-    
+    listaTimestampsNp = np.array(listaTimestamps)
+    listaTiemposProcesadoServerNp = np.array(listaTiemposProcesadoServer)
+
     print(listaRecibidos[listaTiempos.index(np.max(listaTiemposNp))])
 
     print("Tiempo medio recepcion (ms): ", np.mean(listaTiemposNp))
-    print("Tiempo mediana recepcion (ms): ", np.median(listaTiemposNp))
-    print("Tiempo maximo: ", np.max(listaTiemposNp), " Mininmo:", np.min(listaTiemposNp))
+    print("Mediana tiempo recepcion (ms): ", np.median(listaTiemposNp))
+    print("Tiempo maximo: ", np.max(listaTiemposNp), " Minimo:", np.min(listaTiemposNp))
     print("Varianza: ", np.var(listaTiemposNp))
     print("Desviación Típica: ", np.std(listaTiemposNp))
 
-    plt.hist(listaTiemposNp,100)
+    #plt.hist(listaTiemposNp,100)
+
+    plt.plot(listaTimestampsNp[50:],listaTiemposNp[50:],"k.-", label ="Tiempo de respuesta del servidor", lw = 1, ms= 4)
+    #plt.plot(listaTimestampsNp[50:],listaTiemposProcesadoServerNp[50:],"b.-", label ="Tiempo de procesado del servidor", lw = 1, ms= 4)
     plt.show()
 
 if __name__ == '__main__':
