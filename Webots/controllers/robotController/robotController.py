@@ -1,18 +1,13 @@
 
-
-#from lib.apiWebots import ApiWebots
-#from lib.apiControl import ApiControlRobot
-
-from lib.hiloLineas2 import HiloLineas2
-from lib.hiloLineas import HiloLineas
-
-from lib.hiloQLearning import HiloQLearning
-from lib.hiloControl import HiloControl
+from lib.apiAuriga import ApiAuriga
+from lib.agenteQLearning import AgenteQLearning
+from lib.entorno import Entorno
 from lib.singleton import SingletonVariables
 
 import time
 from datetime import datetime
 from time import gmtime, strftime
+import threading
 
 import argparse
 import pathlib
@@ -33,17 +28,12 @@ mando = None
 
 joystickEnabled = False
 
-controlRobot = None
-
-resolucionCam = None
-
-rA = 0.7 #Ratio de aprendizaje
-gamma = 0.80
+RA = 0.7 #Ratio de aprendizaje
+GAMMA = 0.80
 
 #Inicializamos el singleton para almacenar variables globales entre objetos
 variablesGlobales = SingletonVariables()
 
-variablesGlobales.auriga = None
 variablesGlobales.parado = False
 variablesGlobales.guardarFotos = False
 variablesGlobales.version = '1'
@@ -54,201 +44,181 @@ if platform.system() == 'Windows':
 else:
     variablesGlobales.separadorCarpetas = '/'
 
+paradaTerminal = False
 
-#Ruta a la tablaQ
-path = None
-guardarTabla = False
-
+#Variables de configuración
+rutaAgente = None
+nombreAgente = 'agent'
+guardarAgente = False
+agenteDefecto = ''
 apiSt = 'apiControl'
 
+#Variables para la evaluacion
+guardarEvaluacion = False
+rutaEvaluacion = None
+evaluadorRobot = None
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
 
+agente = None
+entorno = None
+
 def parseArgs():
     #Parsear argumentos 
-    global path, guardarTabla, apiSt
+    global rutaAgente, guardarAgente, guardarEvaluacion, apiSt,nombreAgente, agenteDefecto, rutaEvaluacion
 
 
     config = configparser.ConfigParser()
     config.read('config.ini')
 
-    if config['DEFAULT']['archivoLectura'] != '':
-        path = config['DEFAULT']['archivoLectura']
+    if config['DEFAULT']['directorioAgente'] != '':
+        rutaAgente = config['DEFAULT']['directorioAgente']
 
-    guardarTabla = config['DEFAULT'].getboolean('guardarTabla')
+    if config['DEFAULT']['nombreAgente'] != '':
+        nombreAgente = config['DEFAULT']['nombreAgente']
 
+    if config['DEFAULT']['agenteDefecto'] != '':
+        agenteDefecto = config['DEFAULT']['agenteDefecto']
 
-    #print(path)
     
+    guardarAgente = config['DEFAULT'].getboolean('guardarAgente')
+
+    guardarEvaluacion = config['EVALUACION'].getboolean('guardarEvaluacion')
+    
+    if config['EVALUACION']['rutaEvaluacion'] != '':
+        rutaEvaluacion = config['EVALUACION']['rutaEvaluacion']
 
     apiSt = config['DEFAULT']['API']
 
-    parser = argparse.ArgumentParser(description= "Seguimiento de lineas mediante aprendizaje por refuerzo")
-
-    parser.add_argument('--path', help='Ruta del archivo que contiene la tablaQ', nargs='?', type=argparse.FileType('r') ,dest='path')
-    parser.add_argument('-s', action='store_true', help='Guardar la tabla Q al terminar la ejecución', dest='guardarTabla')
-
-    args = parser.parse_args()
-
-    if args.path is not None and args.path != '':
-        path = args.path
-
-    if args.guardarTabla:
-        guardarTabla = args.guardarTabla
     #print(args, path, guardarTabla)
 
+def bucleAgente():
+    
+    global done, parado, variablesGlobales, entorno, agente, paradaTerminal
+    recompensa= 0
+    estados = entorno.reset()
+    agente.act(estados)
+    
+    print("Estado inicial: ", estados)
+    terminal = False
+    variablesGlobales.parado = True
+    while not done:
+        #print (imagen)
+        if not variablesGlobales.parado:
+            if paradaTerminal:
+                #Si se ordena una parada desde el mando, se actúa acorde.
+                print("Parada Terminal")
+                paradaTerminal = False
+                variablesGlobales.parado = True
+
+            acciones = agente.act(estados)
+
+            estadoAnt= estados
+            
+            estados, terminal, recompensa = entorno.execute(acciones)
+
+            #evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
+
+            agente.observe(terminal, recompensa)
 
 
-def cambiarCapturaFotos():
-    global variablesGlobales
+            #Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
+            if terminal: 
+                estados = entorno.reset()
+                terminal = False
 
-    if variablesGlobales.guardarFotos:
-        variablesGlobales.guardarFotos = False
-        print("Se ha parado la captura de fotos")
-    else:
-        variablesGlobales.guardarFotos = True
-        print("Captura de fotos iniciada")
+        else:
+            print("Esperando")
+            time.sleep(0.3)
+            
 
-def seleccionarApiControl():
-
-    if apiSt == 'apiWebots':
-        from lib.apiWebots import ApiWebots
-        return ApiWebots()
-    elif apiSt == 'apiAuriga':
-        from lib.apiAuriga import ApiAuriga
-        return ApiAuriga()
-
-    from lib.apiControl import ApiControlRobot
-    return ApiControlRobot() # Por defecto devolvemos una api que no hace nada
 
 def main():
-    global done, parado, variablesGlobales
+    global done, variablesGlobales, paradaTerminal, controlRobot
 
     while not done:
-        t0 = time.time()
-        controlRobot.update()
-
-        #print(sensorDer,sensorIz)
-        if controlRobot.getSensorLinea():
-            hiloControl.pararRobot()
-            
-        t1=time.time()
-        
-        #Gestion de los eventos para controlar el robot
-        
-        
-        hiloControl.update()
-        t2=time.time()
-        
+        time.sleep(0.03)
         eventos = pygame.event.get()
         for event in eventos:
             
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.KEYDOWN:
-                #Eventos de teclado
-                #Control general
-                if event.key == pygame.K_ESCAPE: 
-                    #Salir del programa pulsando ESC
-                    done = True
-                elif event.key == pygame.K_o:
-                    #Guardar el ultimo frame
-                    print("Se ha almacenado la imagen")
-                    hiloLineas.printUltimaFotog()
-                elif event.key == pygame.K_p:
-                    #Hacer un print de la tabla Q
-                    print("Tabla Q")
-                    print(hiloQLearning.tablaQ)
-                    
+
             elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0: #Btn A
-                    #Volver a permitir el movimiento
-                    if variablesGlobales.parado:
-                        hiloControl.reanudarRobot()
-                elif event.button == 1: #Btn B
-                    #Parada de emergencia
-                    if not variablesGlobales.parado:
-                        hiloControl.pararRobot()
-                elif event.button == 2:# Btn X
+                if event.button == 2:# Btn X
                     #Guardar el ultimo frame
                     print("Se ha almacenado la imagen")
-                    hiloLineas.printUltimaFotog()
+                    
+                elif event.button == 0: #Btn A
+                    #Volver a permitir el movimiento
+
+                    #Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
+                    print("Reanudado")
+                    variablesGlobales.parado = False
+                    paradaTerminal = False
+                      
+                    controlRobot.reanudar()
+
+                elif event.button == 1: #Btn B
+                    #Parada de emergencias
+                    print("Parado")
+                    
+                    paradaTerminal = True  
+                    #Activar parada
+                    controlRobot.parada()
+                    
                 elif event.button == 3: # Btn Y
                     #Hacer un print de la tabla Q
-                    print("Tabla Q")
-                    print(hiloQLearning.tablaQ)
-
+                    print("TablaQ\n",agente.tablaQ)
                 elif event.button == 6:	#Btn BACK
                     done = True
 
-                elif event.button == 4: #Btn LB
-                    cambiarCapturaFotos()
-                elif event.button == 5: 
-                    time1=round((t1-t0)*1000)
-                    time2=round((t2 - t1) * 1000)
-                    time3=round((time.time() - t2) * 1000)
-                    
-                    print('Tiempo para obtener sensor:', time1)
-                    print('Tiempo update control:', time2)
-                    print('Tiempo eventos:', time3)
-                    print('Total', time1 + time2 + time3)
-                    
-
-
 
 if __name__ == '__main__':
-    try:
+	
+	try:
+		
+		parseArgs()
+		
+		pygame.init()
+		   
+		pygame.joystick.init()
+		if pygame.joystick.get_count()>0:
+			mando = pygame.joystick.Joystick(0)
+			mando.init()
+			joystickEnabled = True
+			print("MandoActivado")
+			
 
-        parseArgs()
-        
-        pygame.init()
-        #screen = pygame.display.set_mode((400,400))
-
-        # Cogemos el reloj de pygame 
-        reloj = pygame.time.Clock()
-
-        pygame.joystick.init()
-        if pygame.joystick.get_count()>0:
-            mando = pygame.joystick.Joystick(0)
-            mando.init()
-            joystickEnabled = True
-            print("MandoActivado")
-
-        time.sleep(0.2)
-
-        controlRobot = seleccionarApiControl()
-
-        variablesGlobales.control = controlRobot
-
-        resolucionCam = controlRobot.getResolucionCam()
-
-        hiloLineas = HiloLineas2(controlRobot, resolucionCam).start()
-
-        hiloQLearning = HiloQLearning(hiloLineas.getNumEstados(),5,hiloLineas,rA,gamma) 
-        hiloControl = HiloControl(hiloQLearning, controlRobot, hiloLineas)
-
-        variablesGlobales.control.setHiloControl(hiloControl)
-
-        hiloQLearning.setHiloControl(hiloControl)
-
-        #Cargar la tabla si se ha especificado una
-        if path != None:
-            
-            hiloQLearning.cargarTablaQ(path)
-
-        hiloQLearning.start()
-        #hiloControl.start()
-
-        main()
-
-    finally:
-        print('Finalizando la ejecución')
-        hiloLineas.stop()
-        hiloQLearning.stop()
-        #hiloControl.stop()
-
-        if guardarTabla:
-            hiloQLearning.guardarTablaQ()
-
-        controlRobot.terminarRobot()
+		time.sleep(0.2)
+		
+		controlRobot = ApiAuriga()
+		entorno = Entorno(controlRobot)
+		if rutaAgente is None: 
+			#Crear un nuevo agente
+			agente = AgenteQLearning(entorno, RA, GAMMA)
+		else:
+			#Cargar un nuevo agente de rutaAgente
+			print("Cargando agente de:", rutaAgente)
+			agente = AgenteQLearning(entorno, RA, GAMMA)
+			agente.cargarTablaQ(rutaAgente)
+		
+		
+		threadAgente = threading.Thread(target= bucleAgente)
+		threadAgente.start()
+			
+		print("Iniciando bucle del mando")
+		main()
+		
+		
+	finally:
+		
+		if guardarAgente:
+			agente.guardarTablaQ()
+		
+		print("Finalizando ejecucion")
+		entorno.close()
+		
+		controlRobot.terminarRobot()
+	

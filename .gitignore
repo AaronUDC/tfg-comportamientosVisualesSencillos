@@ -129,3 +129,5 @@ dmypy.json
 .jpg
 .png
 Webots/controllers/robotController/savedPhotos/
+Webots/controllers/tensorforceController/evaluacion/
+.vscode/launch.json

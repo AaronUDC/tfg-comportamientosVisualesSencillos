@@ -3,12 +3,25 @@ class ApiControlRobot():
 
     def __init__(self):
         #Inicializar el robot
-        self.hiloControl = None
+        self.vuelta = 0
+
     
     def update(self):
         #Actualizar los sistemas del robot
         pass
+    
+    def getTime(self):
+        pass
 
+    def getVuelta(self):
+        return self.vuelta
+
+    def setVuelta(self, vuelta):
+        self.vuelta = vuelta
+
+    def incrementarVuelta(self, incremento):
+        self.vuelta += incremento
+        
     def getSensorLinea(self):
         #Obtener si los sensores de linea han detectado la linea
         pass
@@ -20,8 +33,6 @@ class ApiControlRobot():
     def getResolucionCam(self):
         pass
 
-    def setHiloControl(self, hiloControl):
-        self.hiloControl = hiloControl
 
     def setMotores(self, izqu, der):
         #Aplicar una velocidad a cada motor
@@ -39,6 +50,6 @@ class ApiControlRobot():
     def reset(self):
         pass
 
-    def waypoint (self):    
+    def pushWaypoint (self):    
         pass
     
