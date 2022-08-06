@@ -42,6 +42,8 @@ class Entorno():
 		
 		estadoAct, _  = self.controlRobot.getEstado()
 		
+
+		self.controlRobot.reset()
 		return estadoAct
 		
 	def execute(self, accion):
@@ -69,7 +71,7 @@ class Entorno():
 			reward = -10
 		else:
 			#Recompensa por seguir la linea normal
-			reward = 0
+			reward = 0.5
 		
 		return next_state, terminal, reward
 		

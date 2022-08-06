@@ -4,12 +4,21 @@ class ApiControlRobot():
     def __init__(self):
         #Inicializar el robot
         self.vuelta = 0
-
+        self.parado = True
     
     def update(self):
         #Actualizar los sistemas del robot
         pass
     
+    def parada(self):
+        pass
+
+    def reanudar(self):
+        pass
+
+    def getEstado(self):
+        pass
+
     def getTime(self):
         pass
 

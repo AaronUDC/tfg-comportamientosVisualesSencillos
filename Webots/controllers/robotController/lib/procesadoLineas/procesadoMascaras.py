@@ -118,15 +118,17 @@ class ProcesadoMascaras(HiloProcesadoImg):
         mejorMedida = np.max(listaMedidas)
         mejorIndice = listaMedidas.index(mejorMedida)
         
-        self.lastImg = listaImgs[mejorIndice]
+        self.lastImg = listaImgs[mejorIndice] * 255
         self.lastRawImg = imagen
+
         
         if (mejorMedida > self.listaPuntuacionMin[mejorIndice]):
             #Comprobar si la mejor imagen tiene una puntuación minima
-            return mejorIndice , True 
+            
+            return mejorIndice, True 
         else:
             #En caso contrario consideramos que no se ve la linea
-            return mejorIndice, False
+            return self.getNumEstados()-1, False
         
         
     

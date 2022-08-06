@@ -10,7 +10,7 @@ import pygame
 
 import threading
 
-TIME_STEP = 30
+TIME_STEP = 15
 
 #Velocidades para el movimiento
 VEL_BASE = 40
@@ -63,7 +63,7 @@ class ApiAuriga(ApiControlRobot):
     def _bucleMotores(self):
         #Hilo que se encarga de controlar los motores. Se ejecuta la orden actual cada 50ms
         while not self.terminado:
-            time.sleep(0.05)
+            time.sleep(1.0/(TIME_STEP+5))
             self.ejecutarAccion(self.accionActual)
     
     def setAccion(self, accion):
@@ -78,7 +78,7 @@ class ApiAuriga(ApiControlRobot):
         self.parado = False
         
     def update(self):
-        self.reloj.tick(TIME_STEP)
+        print(self.reloj.tick(TIME_STEP))
     
     def getEstado(self):
     
@@ -87,6 +87,11 @@ class ApiAuriga(ApiControlRobot):
 
     def getSensorLinea(self):
         pass
+        
+    
+    def getTime(self):
+        
+        return int(time.process_time()*1000)
         
         
     def getDatosCamara(self):

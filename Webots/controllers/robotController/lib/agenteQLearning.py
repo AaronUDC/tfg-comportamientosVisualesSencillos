@@ -36,9 +36,9 @@ class AgenteQLearning():
         self.recompensa = 0 #Ultima recompensa
 
 
-    def actualizarQValor(self, estado, accion, recompensa, nuevoEstado):
+    def actualizarQValor(self, estadoAnterior, accion, recompensa, nuevoEstado):
         maximo = np.max(self.tablaQ[nuevoEstado])
-        self.tablaQ[estado,accion] = (1-self.rA) * self.tablaQ[estado,accion] + self.rA * (recompensa + self.gamma * maximo)
+        self.tablaQ[estadoAnterior,accion] = (1-self.rA) * self.tablaQ[estadoAnterior,accion] + self.rA * (recompensa + self.gamma * maximo)
         
     def getQValor(self, estado, accion):
         return self.tablaQ[estado,accion]
@@ -48,13 +48,13 @@ class AgenteQLearning():
 
     def act(self, estado):
         self.estadoAnterior = self.estadoAct
-        self.estadoaAct = estado
+        self.estadoAct = estado
         self.accionAct = self.getMejorAccion(estado)
         return self.accionAct
     
-    def observe(self, terminal, recompensa):
+    def observe(self, terminal, recompensa, estado):
         
-        self.actualizarQValor(self.estadoAnterior, self.accionAct, recompensa, self.estadoAct) 
+        self.actualizarQValor(self.estadoAct, self.accionAct, recompensa, estado) 
     
         
     def update(self):

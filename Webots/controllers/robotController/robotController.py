@@ -1,8 +1,9 @@
 
-from lib.apiAuriga import ApiAuriga
+
 from lib.agenteQLearning import AgenteQLearning
 from lib.entorno import Entorno
 from lib.singleton import SingletonVariables
+from lib.evaluacion import Evaluador
 
 import time
 from datetime import datetime
@@ -93,44 +94,69 @@ def parseArgs():
 
     #print(args, path, guardarTabla)
 
+def seleccionarApiControl():
+    api = None
+
+    if apiSt == 'apiWebots':
+        from lib.apiWebots import ApiWebots
+        api =  ApiWebots()
+
+    elif apiSt == 'apiAuriga':
+        from lib.apiAuriga import ApiAuriga
+
+        api = ApiAuriga()
+
+    else:
+        from lib.apiControl import ApiControlRobot
+        api = ApiControlRobot()
+
+    return api
+
 def bucleAgente():
     
-    global done, parado, variablesGlobales, entorno, agente, paradaTerminal
-    recompensa= 0
-    estados = entorno.reset()
-    agente.act(estados)
-    
-    print("Estado inicial: ", estados)
-    terminal = False
-    variablesGlobales.parado = True
-    while not done:
-        #print (imagen)
-        if not variablesGlobales.parado:
-            if paradaTerminal:
-                #Si se ordena una parada desde el mando, se actúa acorde.
-                print("Parada Terminal")
-                paradaTerminal = False
-                variablesGlobales.parado = True
+	global done, parado, variablesGlobales, entorno, agente, paradaTerminal
+	recompensa= 0
+	estados = entorno.reset()
+	agente.act(estados)
 
-            acciones = agente.act(estados)
+	print("Estado inicial: ", estados)
+	terminal = False
+	recompensa = None
+	variablesGlobales.parado = True
+	while not done:
+		#print (imagen)
+		if not variablesGlobales.parado:
+			
+			#Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
+			if terminal: 
+				estados = entorno.reset()
+				terminal = False
+			
+			if paradaTerminal:
+				#Si se ordena una parada desde el mando, se actúa acorde.
+				print("Parada Terminal")
+				paradaTerminal = False
+				variablesGlobales.parado = True
 
-            estadoAnt= estados
+			acciones = agente.act(estados)
+
+			estadoAnt= estados
             
-            estados, terminal, recompensa = entorno.execute(acciones)
+			if guardarEvaluacion:
+				mask = controlRobot.procesadoLineas.lastImg
+				raw = controlRobot.procesadoLineas.lastRawImg
+				evaluadorRobot.almacenarPaso(controlRobot.getTime(), estadoAnt, mask, raw, acciones, terminal, recompensa)
 
-            #evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
+			estados, terminal, recompensa = entorno.execute(acciones)
+			
 
-            agente.observe(terminal, recompensa)
+			agente.observe(terminal, recompensa,estados)
 
 
-            #Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
-            if terminal: 
-                estados = entorno.reset()
-                terminal = False
+			
 
-        else:
-            print("Esperando")
-            time.sleep(0.3)
+		else:
+			controlRobot.update()
             
 
 
@@ -148,7 +174,7 @@ def main():
             elif event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 2:# Btn X
                     #Guardar el ultimo frame
-                    print("Se ha almacenado la imagen")
+                    print("TODO")
                     
                 elif event.button == 0: #Btn A
                     #Volver a permitir el movimiento
@@ -193,7 +219,9 @@ if __name__ == '__main__':
 
 		time.sleep(0.2)
 		
-		controlRobot = ApiAuriga()
+		controlRobot = seleccionarApiControl()
+
+
 		entorno = Entorno(controlRobot)
 		if rutaAgente is None: 
 			#Crear un nuevo agente
@@ -204,6 +232,8 @@ if __name__ == '__main__':
 			agente = AgenteQLearning(entorno, RA, GAMMA)
 			agente.cargarTablaQ(rutaAgente)
 		
+		if guardarEvaluacion:
+			evaluadorRobot = Evaluador(nombreAgente, rutaEvaluacion) 
 		
 		threadAgente = threading.Thread(target= bucleAgente)
 		threadAgente.start()
@@ -217,6 +247,10 @@ if __name__ == '__main__':
 		if guardarAgente:
 			agente.guardarTablaQ()
 		
+		if guardarEvaluacion: 
+			evaluadorRobot.guardarEpisodio()
+			
+			
 		print("Finalizando ejecucion")
 		entorno.close()
 		
