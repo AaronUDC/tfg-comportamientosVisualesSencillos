@@ -20,13 +20,12 @@ def tiempoDeRecepcionMedio(datos):
     listaTiempos = list()
     listaTimestamps = list()
     listaTiemposProcesadoServer = list()
-    sum = 0
+
     for paquete in listaRecibidos:
         tiempo = paquete[2] - paquete[1]
         listaTiempos.append(tiempo)
         listaTiemposProcesadoServer.append(paquete[3])
         listaTimestamps.append(paquete[1])
-        sum += tiempo
 
     listaTiemposNp = np.array(listaTiempos)
     listaTimestampsNp = np.array(listaTimestamps)
@@ -34,16 +33,16 @@ def tiempoDeRecepcionMedio(datos):
 
     print(listaRecibidos[listaTiempos.index(np.max(listaTiemposNp))])
 
-    print("Tiempo medio recepcion (ms): ", np.mean(listaTiemposNp))
-    print("Mediana tiempo recepcion (ms): ", np.median(listaTiemposNp))
-    print("Tiempo maximo: ", np.max(listaTiemposNp), " Minimo:", np.min(listaTiemposNp))
-    print("Varianza: ", np.var(listaTiemposNp))
-    print("Desviación Típica: ", np.std(listaTiemposNp))
+    print("Tiempo medio recepcion (ms): ", np.mean(listaTiemposNp[2:]))
+    print("Mediana tiempo recepcion (ms): ", np.median(listaTiemposNp[2:]))
+    print("Tiempo maximo: ", np.max(listaTiemposNp[2:]), " Minimo:", np.min(listaTiemposNp[2:]))
+    print("Varianza: ", np.var(listaTiemposNp[2:]))
+    print("Desviación Típica: ", np.std(listaTiemposNp[2:]))
 
     #plt.hist(listaTiemposNp,100)
 
-    plt.plot(listaTimestampsNp[50:],listaTiemposNp[50:],"k.-", label ="Tiempo de respuesta del servidor", lw = 1, ms= 4)
-    #plt.plot(listaTimestampsNp[50:],listaTiemposProcesadoServerNp[50:],"b.-", label ="Tiempo de procesado del servidor", lw = 1, ms= 4)
+    plt.plot(listaTimestampsNp[2:],listaTiemposNp[2:],"k.-", label ="Tiempo de respuesta del servidor", lw = 1, ms= 4)
+    plt.plot(listaTimestampsNp[2:],listaTiemposProcesadoServerNp[2:],"b.-", label ="Tiempo de procesado del servidor", lw = 1, ms= 4)
     plt.show()
 
 if __name__ == '__main__':
