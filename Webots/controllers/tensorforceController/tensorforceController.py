@@ -4,9 +4,6 @@ from tensorforce import Agent
 from lib.evaluacion import Evaluador
 from lib.entornoLineas import EntornoLineas
 from lib.singleton import SingletonVariables
-from lib.procesadoLineas.procesadoMascaras import ProcesadoMascaras
-from lib.procesadoLineas.procesadoImagenBin import ProcesadoImagenBin
-from lib.procesadoLineas.procesadoServer import ProcesadoServer
 
 import time
 from datetime import datetime

@@ -1,7 +1,7 @@
 {
     "agent": "dqn",
     "memory": 64,
-    "batch_size": 5,
+    "batch_size": 1,
     "network": [{
         "type": "embedding",
         "size": 48,
@@ -14,11 +14,11 @@
         "type": "dense",
         "size": 24,
         "bias" : "true",
-        "activation" : "tanh"
+        "activation" : "relu"
     },{
         "type": "dense",
         "size": 24,
         "bias" : "true",
-        "activation" : "tanh"
+        "activation" : "relu"
     }]
 }

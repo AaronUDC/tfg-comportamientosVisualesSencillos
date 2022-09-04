@@ -21,9 +21,7 @@ class ApiControlRobot():
     def reanudar(self):
         pass
 
-    def getEstado(self):
-        pass
-    
+
     def getTime(self):
         pass
 
@@ -56,22 +54,28 @@ class ApiControlRobot():
         #Obtener si los sensores de linea han detectado la linea
         pass
 
-    def getDatosCamara(self):
+    def getImgCamara(self):
         #Obtener la ultima imagen capturada por la camara
-        pass
-
-    def getDictEstados(self):
         pass
     
     def getResolucionCam(self):
         pass
 
+    def getDictEstados(self):
+        pass
+
+    def getEstado(self):
+        pass
+    
+    def setAccion(self, accion):
+        if not self.parado: #Si esta parado, no admitimos nuevas ordenes
+            self.seleccionarAccion(accion)
 
     def setMotores(self, izqu, der):
         #Aplicar una velocidad a cada motor
         pass
     
-    def ejecutarAccion(self, accion):
+    def seleccionarAccion(self, accion):
         #Ejecutar una acción
         pass
 
@@ -79,10 +83,8 @@ class ApiControlRobot():
         #Finalizar los sistemas del robot.
         pass
 
-    #Metodos que solo tienen uso en webots para reiniciar la simulacion
     def reset(self):
+        #Colocar el robot de nuevo en la línea
         pass
 
-    def pushWaypoint (self):    
-        pass
     
