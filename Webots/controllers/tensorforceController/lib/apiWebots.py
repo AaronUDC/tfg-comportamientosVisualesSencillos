@@ -1,3 +1,5 @@
+from math import floor
+from .procesadoLineas.procesadoImagenBin import ProcesadoImagenBin
 from lib.apiControl import ApiControlRobot
 
 from lib.singleton import SingletonVariables
@@ -12,15 +14,15 @@ from controller import Node
 
 import numpy as np
 
-#Iteraciones por segundo
-TIME_STEP = 30
+#Tiempo que dura una iteracion en milisegundos
+TIME_STEP = int((1/15)*1000)
 
 #Velocidades para el movimiento
 VEL_BASE = 3
 MOD_VEL = 1
 
 NUM_WAYPOINTS = 5 #Cantidad de puntos de restauracion que se usaran en el buffer
-STEP_INTERVAL = 40 #Cantidad de iteraciones entre cada waypoint
+STEP_INTERVAL = 10 #Cantidad de iteraciones entre cada waypoint
 
 DISTANCIA_MIN_INICIO = 0.1 #Distancia mínima (m) al punto de inicio del robot para comprobar cuando se da una vuelta.
 
@@ -35,6 +37,7 @@ class ApiWebots(ApiControlRobot):
         #Inicializar Camara
         self.camera = self.robot.getDevice('cameraLinea')
         self.camera.enable(TIME_STEP)
+        self.procesadoLineas = ProcesadoImagenBin(self,self.getResolucionCam())
         
         #Inicializar Sensores
         self.sensorLineaIzq = self.robot.getDevice(SENSORES_INFERIORES[0])
@@ -53,7 +56,7 @@ class ApiWebots(ApiControlRobot):
         self.ruedaDer.setVelocity(0)
 
         self.waypoints = [] #Cola de puntos de restauración
-        self.stepCount = 0  #Contador para guardar un nuevo punto de restauracion
+        self.stepCount = 1  #Contador para guardar un nuevo punto de restauracion
 
         #Inicializamos los puntos de restauracion
         for _ in range(NUM_WAYPOINTS):
@@ -66,8 +69,18 @@ class ApiWebots(ApiControlRobot):
         self.visitandoMeta = True
         
         self.vuelta = 0 #TODO: Esto mejor en el padre, ya que se debería poder usar en todas las implementaciones.
-
     
+    def parada(self):
+        
+        self.parado = True
+        self.ejecutarAccion(5)
+
+    def setAccion(self, accion):
+        if not self.parado: #Si esta parado, no admitimos nuevas ordenes
+            self.ejecutarAccion(accion)
+
+    def reanudar(self):
+        self.parado = False
 
     def update(self):
         
@@ -100,22 +113,23 @@ class ApiWebots(ApiControlRobot):
             #Si se encuentra cerca sumar una vuelta si no se está visitando y marcar que se está visitando
             #Si se aleja de la meta (igual un poco más del mínimo) y se está visitando, marcar que no se está visitando
 
-        
-            
-    #TODO: Get Vuelta
-
-    #TODO: Set Vuelta
-
+    def getEstado(self):
+        return self.procesadoLineas.getEstado(self.getDatosCamara())   
+    
+    
     def getTime(self):
         #Devolver el tiempo de la simulacion en segundos
         return self.robot.getTime()
-        
+    
 
     def getSensorLinea(self):
         der = self.sensorLineaDer.getValue()
         izq = self.sensorLineaIzq.getValue()
         #print(der, izq)
         return der < 600 or izq < 600
+
+    def getDictEstados(self):
+        return self.procesadoLineas.getDictEstados()
 
     def getDatosCamara(self):
         imagen = self.camera.getImage()
@@ -134,26 +148,40 @@ class ApiWebots(ApiControlRobot):
         self.ruedaIzq.setVelocity(izq)
 
     def ejecutarAccion(self, accion):
-
+        radioRuedas = 21 #mm
+        distanciaRuedas = 126/2
+        velBase = 80
+        velAng = 0
         #print(accion)
         if accion == 0:
-            self.setMotores(self.velocBase , self.velocBase) #Avanzar
-
+            velAng = 1
+            #self.setMotores(self.velocBase - self.modificadorVeloc * 2, self.velocBase + self.modificadorVeloc * 2) #Girar fuerte a la izquierda
+        
         elif accion == 1:
-            
-            self.setMotores(self.velocBase - self.modificadorVeloc, self.velocBase + self.modificadorVeloc) #Girar a la derecha
-
+            velAng = 0.5
+            #self.setMotores(self.velocBase - self.modificadorVeloc, self.velocBase + self.modificadorVeloc) #Girar a la izquierda
+        
         elif accion == 2:
-            self.setMotores(self.velocBase + self.modificadorVeloc, self.velocBase - self.modificadorVeloc) #Girar a la izquierda
-            
-        elif accion == 3:
-            self.setMotores(self.velocBase - self.modificadorVeloc * 2, self.velocBase + self.modificadorVeloc * 2) #Girar fuerte a la derecha
+            velAng = 0
+            #self.setMotores(self.velocBase , self.velocBase) #Avanzar
 
+        elif accion == 3:
+            velAng = -0.5
+            #self.setMotores(self.velocBase + self.modificadorVeloc, self.velocBase - self.modificadorVeloc) #Girar a la derecha
+        
         elif accion == 4:
-            self.setMotores(self.velocBase + self.modificadorVeloc * 2, self.velocBase - self.modificadorVeloc * 2) #Girar fuerte a la izquierda
+            velAng = -1
+            #self.setMotores(self.velocBase + self.modificadorVeloc * 2, self.velocBase - self.modificadorVeloc * 2) #Girar fuerte a la derecha
         
         elif accion == 5:
             self.setMotores(0,0) #Pararse
+            return
+    
+        l = (velBase - 126/2 * velAng)/ 21 # (VelBase(mm/s) - (distanciaRuedas/2) * velAng(rad/s)) / radioRuedas 
+        r = (velBase + 126/2 * velAng)/ 21 # (VelBase(mm/s) + (distanciaRuedas/2) * velAng(rad/s)) / radioRuedas 
+
+        #print(velAng)
+        self.setMotores(l, r)
 
     def terminarRobot(self):
         #Desactivar todos los dispositivos al terminar la ejecución

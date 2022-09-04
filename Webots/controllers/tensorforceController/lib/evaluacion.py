@@ -49,11 +49,11 @@ class Evaluador:
     def getNumRefuerzosNegativos(self):
         #Contar las veces que se da un refuerzo inferior a 0
         #print(self.episodio_refuerzos)
-        return sum(refuerzo > 0 for refuerzo in self.episodio_refuerzos) 
+        return sum(refuerzo < 0 for refuerzo in self.episodio_refuerzos) 
 
     def _guardarEstados(self,ruta, hora):
 
-        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+        horaSt= hora.strftime('%Y.%m.%d_%H.%M.%S')
 
         variablesGlobales = SingletonVariables()
         rutaEstados = '{carpeta}{separador}states'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas )
@@ -96,7 +96,7 @@ class Evaluador:
         variablesGlobales = SingletonVariables()
 
         hora = datetime.now()
-        horaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+        horaSt= hora.strftime('%Y.%m.%d_%H.%M.%S')
 
         rutaEvaluacion = '{carpeta}{separador}{agente}_{fecha}'.format(carpeta=ruta, separador=variablesGlobales.separadorCarpetas, agente = self.nombreAgente,fecha= horaSt)
 

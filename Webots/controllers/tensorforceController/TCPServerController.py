@@ -125,6 +125,7 @@ def procesarRed():
             acciones = agente.act(states= estados)
             #acciones= 4
             estadoAnt= estados
+            
             estados, terminal, recompensa = entorno.execute(actions = acciones)
 
             evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
@@ -156,6 +157,7 @@ def main():
             
             if event.type == pygame.QUIT:
                 done = True
+
 
             elif event.type == pygame.JOYBUTTONDOWN:
                 if event.button == 2:# Btn X
@@ -252,6 +254,10 @@ if __name__ == '__main__':
         print("Iniciado threadServidor: ", threadProcesarRed.name)
 
         main()
+
+    except (KeyboardInterrupt):
+        guardarAgente = False
+        guardarEvaluacion = False
 
     finally:
 

@@ -8,9 +8,9 @@ import numpy as np
 from lib.singleton import SingletonVariables
 from lib.procesadoLineas.hiloProcesado import HiloProcesadoImg
 
-RESOLUCION_SALIDA_DEFECTO = (8,6)
+RESOLUCION_SALIDA_DEFECTO = (8,10)
 
-MIN_LINEA_VISIBLE = 0.10
+MIN_LINEA_VISIBLE = 0.1
 
 class ProcesadoServer(HiloProcesadoImg):
     
@@ -32,12 +32,19 @@ class ProcesadoServer(HiloProcesadoImg):
 
         self.lastImg = image
         
-        _,mask = cv2.threshold(cv2.erode(image,np.ones((2,2)),iterations=1), 60,255, cv2.THRESH_BINARY)
+        #_,mask = cv2.erode(image,np.ones((3,3)),iterations=1)
+        dilatedImg = cv2.dilate(image, np.ones((3,3), np.uint8))
+        diffImg = 255 - cv2.absdiff(image, dilatedImg)
+        #print(np.min(diffImg))
+        if np.max(diffImg) - np.min(diffImg) > (255 * 0.3):
+            norm_img = cv2.normalize(diffImg,None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+        else:
+            norm_img = diffImg
         
-        
-        sumImg = mask.sum()
-        #print(sumImg)
+        sumImg = norm_img.sum()
+        #print(sumImg, self.sumaMinima)
         if sumImg < self.sumaMinima:
+
             return image, True 
 
         return image, False
@@ -97,5 +104,10 @@ class ProcesadoServer(HiloProcesadoImg):
 
         return estado, viendoLinea, lastImg
 
-    def getEstadoAct(self):
-        return super().getEstadoAct()
+    def getEstado(self, image):
+        resizedImg, viendoImg = self.processImage(image)
+        
+        self.lastImg = resizedImg
+        self.lastRawImg = image
+
+        return resizedImg, viendoImg

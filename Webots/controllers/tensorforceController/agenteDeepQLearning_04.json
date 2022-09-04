@@ -1,0 +1,26 @@
+{
+    "agent": "dqn",
+    "memory": 64,
+    "batch_size": 5,
+    "discount" : 0.95,
+    "learning_rate" : 0.001,
+    "network": [{
+        "type": "conv2d",
+        "size": 60,
+        "bias" : "true",
+        "activation" : "relu"
+    },{
+        "type": "conv2d",
+        "size": 40,
+        "bias" : "true",
+        "activation" : "relu"
+    },{
+        "type": "dense",
+        "size": 20,
+        "bias" : "true",
+        "activation" : "tanh"
+    },{
+        "type": "pooling",
+        "reduction": "max"
+    }]
+}

@@ -9,7 +9,7 @@ import numpy as np
 from lib.singleton import SingletonVariables
 from lib.procesadoLineas.hiloProcesado import HiloProcesadoImg
 
-RESOLUCION_SALIDA_DEFECTO = (8,6)
+RESOLUCION_SALIDA_DEFECTO = (8,10)
 
 MIN_LINEA_VISIBLE = 0.15
 
@@ -68,8 +68,8 @@ class ProcesadoImagenBin(HiloProcesadoImg):
         return self.resolucionSalida[0]*self.resolucionSalida[1]*256
     
     def getDictEstados(self):
-        return dict(type= 'int', shape=self.resolucionSalida, num_values= 256)
-        #return dict(type= 'float', shape=self.resolucionSalida, min_value = 0.0, max_value = 255.0)
+        #return dict(type= 'int', shape=self.resolucionSalida, num_values= 256)
+        return dict(type= 'float', shape=(8,10,1), min_value = 0.0, max_value = 1.0)
     
     def printUltimaFotog(self):
         carpeta = 'savedPhotos'
@@ -105,5 +105,10 @@ class ProcesadoImagenBin(HiloProcesadoImg):
 
         return estado, viendoLinea, lastImg
 
-    def getEstadoAct(self):
-        return super().getEstadoAct()
+    def getEstado(self, image):
+        resizedImg, viendoImg = self.processImage(image)
+        
+        self.lastImg = resizedImg
+        self.lastRawImg = image
+
+        return resizedImg, viendoImg

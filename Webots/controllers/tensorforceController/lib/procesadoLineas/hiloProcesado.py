@@ -40,7 +40,7 @@ class HiloProcesadoImg():
 
         return None,None,None
 
-    def getEstadoAct(self):
+    def getEstado(self,image):
         return None
         
     def stop(self):
