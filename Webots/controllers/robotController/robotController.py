@@ -20,6 +20,7 @@ import numpy as np
 import pygame
 from pygame.locals import *
 
+NUM_VUELTAS = 5
 
 done = False
 
@@ -29,7 +30,7 @@ mando = None
 
 joystickEnabled = False
 
-RA = 0.7 #Ratio de aprendizaje
+RA = 0.5 #Ratio de aprendizaje
 GAMMA = 0.80
 
 #Inicializamos el singleton para almacenar variables globales entre objetos
@@ -60,12 +61,14 @@ rutaEvaluacion = None
 evaluadorRobot = None
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
-np.set_printoptions(precision=3)
+
+np.set_printoptions(precision=3, floatmode= "fixed")
 
 agente = None
 entorno = None
+controlRobot = None
 
-def parseArgs():
+def parseConfig():
     #Parsear argumentos 
     global rutaAgente, guardarAgente, guardarEvaluacion, apiSt,nombreAgente, agenteDefecto, rutaEvaluacion
 
@@ -112,7 +115,7 @@ def seleccionarApiControl():
 
     return api
 
-def bucleAgente():
+def bucleAprendizaje():
     
 	global done, parado, variablesGlobales, entorno, agente, paradaTerminal
 	recompensa= 0
@@ -141,74 +144,85 @@ def bucleAgente():
 			acciones = agente.act(estados)
 
 			estadoAnt= estados
-            
+			
 			if guardarEvaluacion:
-				mask = controlRobot.procesadoLineas.lastImg
-				raw = controlRobot.procesadoLineas.lastRawImg
+				mask = controlRobot.preprocesado.lastImg
+				raw = controlRobot.preprocesado.lastRawImg
+			
+			estados, terminal, recompensa = entorno.execute(acciones)
+			            
+			if guardarEvaluacion:
 				evaluadorRobot.almacenarPaso(controlRobot.getTime(), estadoAnt, mask, raw, acciones, terminal, recompensa)
 
-			estados, terminal, recompensa = entorno.execute(acciones)
-			
-
 			agente.observe(terminal, recompensa,estados)
-
-
-			
 
 		else:
 			controlRobot.update()
             
 
 
-def main():
-    global done, variablesGlobales, paradaTerminal, controlRobot
+def controlManual():
+	global done, variablesGlobales, paradaTerminal, controlRobot
 
-    while not done:
-        time.sleep(0.03)
-        eventos = pygame.event.get()
-        for event in eventos:
-            
-            if event.type == pygame.QUIT:
-                done = True
+	while not done:
+		time.sleep(0.03)
+		eventos = pygame.event.get()
+		for event in eventos:
+			
+			if event.type == pygame.QUIT:
+				done = True
 
-            elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 2:# Btn X
-                    #Guardar el ultimo frame
-                    print("TODO")
-                    
-                elif event.button == 0: #Btn A
-                    #Volver a permitir el movimiento
+			elif event.type == pygame.JOYBUTTONDOWN:
+				if event.button == 2:# Btn X
+					#Guardar el ultimo frame
+					print("Parado: ", variablesGlobales.parado)
+					print("Evaluacion")
+					
+					print("Recompensa acumulada descontada gamma=", agente.gamma)
+					print(evaluadorRobot.getRecompensaAcumuladaDescontada(agente.gamma))
+					print("Refuerzos negativos:", evaluadorRobot.getNumRefuerzosNegativos())
+					print("Estados terminales:", evaluadorRobot.getNumEstadosTerminales())
+					
+					
+				elif event.button == 0: #Btn A
+					#Volver a permitir el movimiento
 
-                    #Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
-                    print("Reanudado")
-                    variablesGlobales.parado = False
-                    paradaTerminal = False
-                      
-                    controlRobot.reanudar()
+					#Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
+					print("Reanudado")
+					variablesGlobales.parado = False
+					paradaTerminal = False
+					  
+					controlRobot.reanudar()
 
-                elif event.button == 1: #Btn B
-                    #Parada de emergencias
-                    print("Parado")
-                    
-                    paradaTerminal = True  
-                    #Activar parada
-                    controlRobot.parada()
-                    
-                elif event.button == 3: # Btn Y
-                    #Hacer un print de la tabla Q
-                    print("TablaQ\n",agente.tablaQ)
-                elif event.button == 6:	#Btn BACK
-                    done = True
+				elif event.button == 1: #Btn B
+					#Parada de emergencias
+					print("Parado")
+					
+					paradaTerminal = True  
+					#Activar parada
+					controlRobot.parada()
+					
+				elif event.button == 3: # Btn Y
+					#Hacer un print de la tabla Q
+					print("TablaQ\n",agente.tablaQ)
+
+				elif event.button == 6:	#Btn BACK
+					done = True
+		
+		if controlRobot.getVuelta() >= NUM_VUELTAS:
+			done = True
 
 
 if __name__ == '__main__':
 	
 	try:
 		
-		parseArgs()
+		## Parseo del archivo de configuracion
+		parseConfig()
 		
+		## Inicializacion de Pygame y el joystick
 		pygame.init()
-		   
+
 		pygame.joystick.init()
 		if pygame.joystick.get_count()>0:
 			mando = pygame.joystick.Joystick(0)
@@ -219,38 +233,43 @@ if __name__ == '__main__':
 
 		time.sleep(0.2)
 		
+		#Inicializar los módulos del controlador
+
 		controlRobot = seleccionarApiControl()
 
-
 		entorno = Entorno(controlRobot)
+
+		#Inicializar el agente
 		if rutaAgente is None: 
-			#Crear un nuevo agente
+			print("Creando un agente nuevo")
 			agente = AgenteQLearning(entorno, RA, GAMMA)
 		else:
-			#Cargar un nuevo agente de rutaAgente
 			print("Cargando agente de:", rutaAgente)
 			agente = AgenteQLearning(entorno, RA, GAMMA)
 			agente.cargarTablaQ(rutaAgente)
 		
 		if guardarEvaluacion:
-			evaluadorRobot = Evaluador(nombreAgente, rutaEvaluacion) 
+			evaluadorRobot = Evaluador(nombreAgente, agente, rutaEvaluacion) 
 		
-		threadAgente = threading.Thread(target= bucleAgente)
-		threadAgente.start()
+		threadBucleAprendizaje = threading.Thread(target= bucleAprendizaje)
+		threadBucleAprendizaje.start()
 			
+		#Módulo de control manual
 		print("Iniciando bucle del mando")
-		main()
+		controlManual()
 		
+		
+		threadBucleAprendizaje.join()
 		
 	finally:
-		
-		if guardarAgente:
-			agente.guardarTablaQ()
-		
-		if guardarEvaluacion: 
-			evaluadorRobot.guardarEpisodio()
+		#Guardar el log del entrenamiento
+		if guardarEvaluacion:
+			evaluadorRobot.guardarEpisodio(guardarAgente)
+		elif not guardarEvaluacion and guardarAgente:
+			print(agente.guardarTablaQ(directorio="tmp"))
 			
-			
+		
+		#Terminar los módulos
 		print("Finalizando ejecucion")
 		entorno.close()
 		

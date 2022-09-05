@@ -8,7 +8,6 @@ class Preprocesado():
     def processImage(self, image):
         pass
 
-
     def getNumEstados(self):
         return None
     

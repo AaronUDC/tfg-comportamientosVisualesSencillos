@@ -9,10 +9,11 @@ import cv2
 from lib.singleton import SingletonVariables
 class Evaluador:
 
-    def __init__(self, nombreAgente, rutaEvaluacion):
+    def __init__(self, nombreAgente, agente, rutaEvaluacion):
         self.variablesGlobales = SingletonVariables()
         
         self.nombreAgente = nombreAgente
+        self.agente = agente
 
         self.episodio_tiempo = list()
         self.episodio_estados = list()
@@ -26,11 +27,31 @@ class Evaluador:
         
         self.rutaLog = self._crearCarpetaLogs(rutaEvaluacion)
         
+    def setAgente(self, agente):
+        self.agente = agente
     
+    def getRecompensaAcumuladaDescontada(self, gamma = 1):
+        #Con un gamma de 1, no hay descuento.
+        suma= 0.0
+
+        for i, refuerzo in enumerate(self.episodio_refuerzos, start = 1):
+            suma += (gamma**i) * refuerzo
+        
+        return suma
+
+    def getNumEstadosTerminales(self):
+        #Contarmos las veces que tenemos un true en la lista.
+        return  sum(self.episodio_terminales)
     
+    def getNumRefuerzosNegativos(self):
+        #Contar las veces que se da un refuerzo inferior a 0
+        #print(self.episodio_refuerzos)
+        return sum(refuerzo < 0 for refuerzo in self.episodio_refuerzos) 
+
+
     def _crearCarpetaLogs(self, rutaEvaluacion):
         hora = datetime.now()
-        fechaSt= hora.strftime('%d.%m.%Y_%H.%M.%S')
+        fechaSt= hora.strftime('%Y.%m.%d_%H.%M.%S')
         
         ruta = "{rutaEval}{separador}{nombreAgente}_{fecha}".format(rutaEval = rutaEvaluacion, separador = self.variablesGlobales.separadorCarpetas , nombreAgente = self.nombreAgente,fecha = fechaSt)
 
@@ -72,27 +93,11 @@ class Evaluador:
         self.episodio_fotosRaw.append(nombre)
         self.cicloActual +=1
         
-    def getRecompensaAcumuladaDescontada(self, gamma = 1):
-        #Con un gamma de 1, no hay descuento.
-        suma= 0.0
-
-        for i, refuerzo in enumerate(self.episodio_refuerzos, start = 1):
-            suma += (gamma**i) * refuerzo
+    def guardarEpisodio(self, guardarAgente):
         
-        return suma
+        if guardarAgente:
+            self.agente.guardarTablaQ(self.rutaLog)
 
-    def getNumEstadosTerminales(self):
-        #Contarmos las veces que tenemos un true en la lista.
-        return  sum(self.episodio_terminales)
-    
-    def getNumRefuerzosNegativos(self):
-        #Contar las veces que se da un refuerzo inferior a 0
-        #print(self.episodio_refuerzos)
-        return sum(refuerzo > 0 for refuerzo in self.episodio_refuerzos) 
-
-
-    def guardarEpisodio(self):
-        
         #Creamos el array de datos en formato CSV
         df = pd.DataFrame({
             'tiempo': self.episodio_terminales,
@@ -103,7 +108,9 @@ class Evaluador:
             'terminales': self.episodio_terminales,
             'refuerzos': self.episodio_refuerzos,
         })
+        
+        nombreArchivo = '{carpeta}{separador}log.csv'.format(carpeta=self.rutaLog, separador=self.variablesGlobales.separadorCarpetas)
 
-        formatoCSV = df.to_csv('{carpeta}{separador}log.csv'.format(carpeta=self.rutaLog, separador=self.variablesGlobales.separadorCarpetas))
+        formatoCSV = df.to_csv(nombreArchivo)
         if (formatoCSV is not None):
             print("se han guardado los datos de validación en:", nombreArchivo)

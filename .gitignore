@@ -134,3 +134,7 @@ Webots/controllers/tensorforceController/evaluacion/
 .vscode/
 evaluacion/
 Webots/controllers/robotController/logsMascaras/
+Webots/controllers/tensorforceController/tensorforceControllerOld.py
+Webots/controllers/tensorforceController/tmp/
+util/logsEvaluacion/
+util/logsServer/

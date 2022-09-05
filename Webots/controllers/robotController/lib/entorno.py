@@ -23,22 +23,24 @@ class Entorno():
 		
 		self.variablesGlobales = SingletonVariables()
 		self.controlRobot = controlRobot
-		self.nAcciones = 5
-		self.nEstados = self.controlRobot.procesadoLineas.getNumEstados()
+		
+		self.dictEstados = self.controlRobot.getDictEstados()
+		self.acciones = dict(type = 'int', num_values=5) #Definir las acciones posibles
+
 		self.recompensa = 0
 		
 	def states(self):
-		return self.nEstados
+		return self.dictEstados
 	
 	def actions(self):
-		return self.nAcciones
+		return self.acciones
 		
 	def close(self):
 		
 		pass
 		
 	def reset(self):
-		self.controlRobot.setAccion(6)
+		self.controlRobot.setAccion(5)
 		
 		estadoAct, _  = self.controlRobot.getEstado()
 		
@@ -71,7 +73,7 @@ class Entorno():
 			reward = -10
 		else:
 			#Recompensa por seguir la linea normal
-			reward = 0.5
+			reward = 0
 		
 		return next_state, terminal, reward
 		

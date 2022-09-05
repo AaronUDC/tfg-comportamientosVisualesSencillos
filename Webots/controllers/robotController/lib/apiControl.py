@@ -1,10 +1,15 @@
 
 class ApiControlRobot():
 
-    def __init__(self):
+    def __init__(self, velocBase, modificadorVeloc):
         #Inicializar el robot
         self.vuelta = 0
         self.parado = True
+
+        
+        self.velocBase = velocBase
+        self.modificadorVeloc = modificadorVeloc
+
     
     def update(self):
         #Actualizar los sistemas del robot
@@ -16,8 +21,6 @@ class ApiControlRobot():
     def reanudar(self):
         pass
 
-    def getEstado(self):
-        pass
 
     def getTime(self):
         pass
@@ -31,23 +34,48 @@ class ApiControlRobot():
     def incrementarVuelta(self, incremento):
         self.vuelta += incremento
         
+    def setVelocidadBase(self, velocBase):
+        self.velocBase = velocBase
+
+    def setModificadorVelocidad(self, modificadorVeloc):
+        self.modificadorVeloc = modificadorVeloc
+
+    def incrementarVelocidades(self,incrementoBase, incrementoModif ):
+        self.velocBase += incrementoBase
+        self.modificadorVeloc += incrementoModif
+
+    def getVelocidadBase(self):
+        return self.velocBase
+
+    def getModificadorVelocidad(self):
+        return self.modificadorVeloc
+
     def getSensorLinea(self):
         #Obtener si los sensores de linea han detectado la linea
         pass
 
-    def getDatosCamara(self):
+    def getImgCamara(self):
         #Obtener la ultima imagen capturada por la camara
         pass
     
     def getResolucionCam(self):
         pass
 
+    def getDictEstados(self):
+        pass
+
+    def getEstado(self):
+        pass
+    
+    def setAccion(self, accion):
+        if not self.parado: #Si esta parado, no admitimos nuevas ordenes
+            self.seleccionarAccion(accion)
 
     def setMotores(self, izqu, der):
         #Aplicar una velocidad a cada motor
         pass
     
-    def ejecutarAccion(self, accion):
+    def seleccionarAccion(self, accion):
         #Ejecutar una acción
         pass
 
@@ -55,10 +83,8 @@ class ApiControlRobot():
         #Finalizar los sistemas del robot.
         pass
 
-    #Metodos que solo tienen uso en webots para reiniciar la simulacion
     def reset(self):
+        #Colocar el robot de nuevo en la línea
         pass
 
-    def pushWaypoint (self):    
-        pass
     

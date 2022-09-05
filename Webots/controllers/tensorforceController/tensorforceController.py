@@ -26,22 +26,14 @@ NUM_VUELTAS = 5
 done = False
 
 parado = False
+paradaTerminal = False
 
 mando = None
-
 joystickEnabled = False
 
-controlRobot = None
-
-resolucionCam = None
-
-rA = 0.7 #Ratio de aprendizaje
-gamma = 1
-
-#Inicializamos el singleton para almacenar variables globales entre objetos
+#Singleton para almacenar variables globales entre objetos
 variablesGlobales = SingletonVariables()
 
-variablesGlobales.auriga = None
 variablesGlobales.parado = False
 variablesGlobales.guardarFotos = False
 variablesGlobales.version = '1'
@@ -52,7 +44,6 @@ if platform.system() == 'Windows':
 else:
     variablesGlobales.separadorCarpetas = '/'
 
-paradaTerminal = False
 
 #Variables de configuración
 rutaAgente = None
@@ -64,13 +55,18 @@ apiSt = 'apiControl'
 #Variables para la evaluacion
 guardarEvaluacion = False
 rutaEvaluacion = None
+
+#Módulos
 evaluadorRobot = None
+controlRobot = None
+agente = None
+entorno = None
+
 # Inicializamos una opcion de NumPy para mostrar datos en punto flotante
 # con 3 digitos decimales de precision al imprimir un array
 np.set_printoptions(precision=3)
-agente = None
-entorno = None
-def parseArgs():
+
+def parseConfig():
     #Parsear argumentos 
     global rutaAgente, guardarAgente, guardarEvaluacion, apiSt,nombreAgente, agenteDefecto, rutaEvaluacion
 
@@ -108,7 +104,6 @@ def seleccionarApiControl():
 
     elif apiSt == 'apiServerTCP':
         from lib.apiServerTCP import ApiServerTCP
-
         api = ApiServerTCP()
 
     else:
@@ -148,20 +143,19 @@ def bucleAprendizaje():
 			acciones = agente.act(states= np.reshape(estados/255.0, (8,10,1)))
 
 			estadoAnt= estados
-            
-			if guardarEvaluacion:
-				evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
 
 			estados, terminal, recompensa = entorno.execute(acciones)
 			
-			agente.observe(terminal = terminal, reward = recompensa)
+			if guardarEvaluacion:
+				evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
 
+			agente.observe(terminal = terminal, reward = recompensa)
 
 		else:
 			controlRobot.update()
             
 
-def main():
+def controlManual():
 	global done, variablesGlobales, paradaTerminal, controlRobot
 
 	while not done:
@@ -174,8 +168,14 @@ def main():
 
 			elif event.type == pygame.JOYBUTTONDOWN:
 				if event.button == 2:# Btn X
-					#Guardar el ultimo frame
-					print("TODO")
+					#Datos del aprendizaje
+					print("Parado: ", variablesGlobales.parado)
+					if guardarEvaluacion:
+						print("Evaluacion")
+						print("Recompensa acumulada descontada gamma=", agente.get_specification()["discount"])
+						print(evaluadorRobot.getRecompensaAcumuladaDescontada(agente.get_specification()["discount"]))
+						print("Refuerzos negativos:", evaluadorRobot.getNumRefuerzosNegativos())
+						print("Estados terminales:", evaluadorRobot.getNumEstadosTerminales())
 					
 				elif event.button == 0: #Btn A
 					#Volver a permitir el movimiento
@@ -196,14 +196,12 @@ def main():
 					controlRobot.parada()
 					
 				elif event.button == 3: # Btn Y
-
-					print("Parado: ", variablesGlobales.parado)
-					print("Evaluacion")
-					print("Recompensa acumulada descontada gamma=", gamma)
-					print(evaluadorRobot.getRecompensaAcumuladaDescontada(gamma))
-					print("Refuerzoas negativos:", evaluadorRobot.getNumRefuerzosNegativos())
-					print("Estados terminales:", evaluadorRobot.getNumEstadosTerminales())
+					print("Arquitectura de la red:")
 					print(agente.get_architecture())
+					
+					print("Especificación del agente:")
+					print(agente.get_specification())
+
 
 				elif event.button == 6:	#Btn BACK
 					done = True
@@ -216,10 +214,12 @@ if __name__ == '__main__':
 	
 	try:
 		
-		parseArgs()
-		
+		## Parseo del archivo de configuracion
+		parseConfig()
+
+		## Inicializacion de Pygame y el joystick
 		pygame.init()
-		   
+
 		pygame.joystick.init()
 		if pygame.joystick.get_count()>0:
 			mando = pygame.joystick.Joystick(0)
@@ -227,20 +227,15 @@ if __name__ == '__main__':
 			joystickEnabled = True
 			print("MandoActivado")
 			
-
 		time.sleep(0.2)
 		
+		#Inicializar los módulos del controlador
+
 		controlRobot = seleccionarApiControl()
-
-		variablesGlobales.control = controlRobot
-
-		resolucionCam = controlRobot.getResolucionCam()
-        
-		evaluadorRobot = Evaluador(nombreAgente)
 
 		entorno = EntornoLineas(controlRobot)
 
-
+		#Inicializar el agente
 		if rutaAgente is None:
 			print("Creando un agente nuevo")
 			agente = Agent.create(agent= agenteDefecto, environment= entorno)
@@ -248,27 +243,28 @@ if __name__ == '__main__':
 			print("Cargando agente ", nombreAgente,' de ', rutaAgente)
 			agente = Agent.load(directory = rutaAgente, filename= nombreAgente)
 
-
+		if guardarEvaluacion:
+			evaluadorRobot = Evaluador(nombreAgente, agente, rutaEvaluacion)
+		
 		threadBucleAprendizaje = threading.Thread(target= bucleAprendizaje)
 		threadBucleAprendizaje.start()
 			
-		print("Iniciando bucle del mando")
 
-		main()
+		#Módulo de control manual
+		print("Iniciando bucle del mando")
+		controlManual()
 
 		threadBucleAprendizaje.join()
 
 	finally:
-		
-		if guardarAgente:
-			evaluadorRobot.setAgente(agente)
 
+		#Guardar el log del entrenamiento
 		if guardarEvaluacion:
-			evaluadorRobot.guardarEpisodio(rutaEvaluacion)
-		
-		if not guardarEvaluacion and guardarAgente:
+			evaluadorRobot.guardarEpisodio(guardarAgente)
+		elif not guardarEvaluacion and guardarAgente:
 			print(agente.save(directory="tmp", filename=nombreAgente))
 
+		#Terminar los módulos
 		print("Finalizando ejecucion")
 		entorno.close()
 		

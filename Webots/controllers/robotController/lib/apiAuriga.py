@@ -1,7 +1,7 @@
 
 from lib.apiControl import ApiControlRobot
 from lib.hiloCamara import HiloCamara
-from lib.procesadoLineas.procesadoMascaras import ProcesadoMascaras
+from lib.preprocesado.preprocesadoMascaras import PreprocesadoMascaras
 from lib.aurigapy.aurigapy import AurigaPy
 import time
 from time import gmtime, sleep, strftime
@@ -10,11 +10,11 @@ import pygame
 
 import threading
 
-TIME_STEP = 15
+TIME_STEP = 30
 
 #Velocidades para el movimiento
-VEL_BASE = 40
-MOD_VEL = 20
+VEL_BASE = 45*3
+MOD_VEL = 25
 
 SENSORES_INFERIORES = [6,7]
 
@@ -23,9 +23,6 @@ RESOLUCION_CAM = (80,64)
     
 bluetooth = "/dev/tty.Makeblock-ELETSPP"
 usb = "/dev/ttyUSB0"
-
-sensorDer = 0
-sensorIz = 0
 
 def timestamp():
     return strftime("%Y-%m-%d %H:%M:%S", gmtime())
@@ -38,9 +35,12 @@ def onReading(value, timeout):
 class ApiAuriga(ApiControlRobot):
 
     def __init__(self):
+        
+        ApiControlRobot.__init__(self, VEL_BASE,MOD_VEL)
+       
         #Inicializar el robot
         self.hiloCam = HiloCamara(RESOLUCION_CAM).start()
-        self.procesadoLineas = ProcesadoMascaras(self,RESOLUCION_CAM)
+        self.preprocesado = PreprocesadoMascaras(RESOLUCION_CAM)
         
         
         self.reloj = pygame.time.Clock()
@@ -59,73 +59,83 @@ class ApiAuriga(ApiControlRobot):
         #Iniciar el hilo que controla los motores
         self.threadMotores = threading.Thread(target= self._bucleMotores)
         self.threadMotores.start()
-        
-    def _bucleMotores(self):
-        #Hilo que se encarga de controlar los motores. Se ejecuta la orden actual cada 50ms
-        while not self.terminado:
-            time.sleep(1.0/(TIME_STEP+5))
-            self.ejecutarAccion(self.accionActual)
-    
-    def setAccion(self, accion):
-        if not self.parado: #Si esta parado, no admitimos nuevas ordenes
-            self.accionActual = accion
+
+    def update(self):
+        self.reloj.tick(TIME_STEP)  
 
     def parada(self):
         
         self.parado = True
         self.accionActual = 5
+        self.seleccionarAccion(5)
+        
     def reanudar(self):
-        self.parado = False
-        
-    def update(self):
-        print(self.reloj.tick(TIME_STEP))
-    
-    def getEstado(self):
-    
-        return self.procesadoLineas.getEstado(self.getDatosCamara())
-        
 
-    def getSensorLinea(self):
-        pass
-        
+        self.parado = False
+    
     
     def getTime(self):
         
         return int(time.process_time()*1000)
         
-        
-    def getDatosCamara(self):
+    def getSensorLinea(self):
+        return False
+    
+    def getImgCamara(self):
         #Obtener la ultima imagen capturada por la camara
         return self.hiloCam.read()
     
     def getResolucionCam(self):
         return RESOLUCION_CAM
-
+        
+    def getDictEstados(self):
+        return self.preprocesado.getDictEstados()
+        
+    def getEstado(self):
+        return self.preprocesado.getEstado(self.getDatosCamara())
+        
     def setMotores(self, izqu, der):
-        self.auriga.set_speed(izqu,der, callback = onReading)
-    
-    def ejecutarAccion(self, accion):
+        self.auriga.set_speed(int(izqu),int(der), callback = onReading)
 
-        #print(accion)
+    def seleccionarAccion(self, accion):
+
+        velAng = 0
+        
         if accion == 0:
-            self.setMotores(-(VEL_BASE - MOD_VEL * 2), VEL_BASE + MOD_VEL * 2) #Girar fuerte a la izquierda
+            velAng = 15 #Girar fuerte a la izquierda
         
         elif accion == 1:
-            self.setMotores(-(VEL_BASE - MOD_VEL), VEL_BASE + MOD_VEL) #Girar a la izquierda
-            
+            velAng = 12 #Girar a la izquierda
+        
         elif accion == 2:
-            self.setMotores(-(VEL_BASE) , VEL_BASE) #Avanzar
+            velAng = 0
+            #self.setMotores(self.velocBase , self.velocBase) #Avanzar
 
         elif accion == 3:
-            self.setMotores(-(VEL_BASE + MOD_VEL), VEL_BASE - MOD_VEL) #Girar a la derecha
-
+            velAng = -12 #Girar a la derecha
+        
         elif accion == 4:
-            self.setMotores(-(VEL_BASE + MOD_VEL * 2), VEL_BASE - MOD_VEL * 2) #Girar fuerte a la derecha
-
+            velAng = -15 #Girar fuerte a la derecha
+        
         elif accion == 5:
-            self.setMotores(0,0) #Parar
+            self.setMotores(0,0) 
+            return
+            
+        #print(velAng)
+        l = (VEL_BASE - (14.5/2) * velAng)/ 3 # (VelBase - (distanciaRuedas/2) * velAng) / radioRuedas 
+        r = (VEL_BASE + (14.5/2) * velAng)/ 3 # (VelBase + (distanciaRuedas/2) * velAng) / radioRuedas 
         
-        
+        self.setMotores(-l,r)
+
+    def _bucleMotores(self):
+        #Hilo que se encarga de controlar los motores. Se ejecuta la orden actual cada 50ms
+        relojMotores = pygame.time.Clock()
+        while not self.terminado:
+            #time.sleep(1.0/(TIME_STEP+5))
+            relojMotores.tick(TIME_STEP+5)
+            
+            self.ejecutarAccion(self.accionActual)
+            
     def terminarRobot(self):
         #Finalizar los sistemas del robot.
         self.terminado = True

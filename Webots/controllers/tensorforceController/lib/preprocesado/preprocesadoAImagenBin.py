@@ -7,7 +7,7 @@ from time import gmtime, strftime
 import cv2
 import numpy as np
 from lib.singleton import SingletonVariables
-from lib.procesadoLineas.preprocesado import Preprocesado
+from lib.preprocesado.preprocesado import Preprocesado
 
 RESOLUCION_SALIDA_DEFECTO = (8,10)
 
