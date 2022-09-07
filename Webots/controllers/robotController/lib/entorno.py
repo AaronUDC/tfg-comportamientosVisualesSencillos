@@ -42,10 +42,11 @@ class Entorno():
 	def reset(self):
 		self.controlRobot.setAccion(5)
 		
+		self.controlRobot.reset()
+		
 		estadoAct, _  = self.controlRobot.getEstado()
 		
 
-		self.controlRobot.reset()
 		return estadoAct
 		
 	def execute(self, accion):

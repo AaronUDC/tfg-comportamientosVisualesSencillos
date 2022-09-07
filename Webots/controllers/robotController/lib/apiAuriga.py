@@ -92,7 +92,7 @@ class ApiAuriga(ApiControlRobot):
         return self.preprocesado.getDictEstados()
         
     def getEstado(self):
-        return self.preprocesado.getEstado(self.getDatosCamara())
+        return self.preprocesado.getEstado(self.getImgCamara())
         
     def setMotores(self, izqu, der):
         self.auriga.set_speed(int(izqu),int(der), callback = onReading)
@@ -134,7 +134,7 @@ class ApiAuriga(ApiControlRobot):
             #time.sleep(1.0/(TIME_STEP+5))
             relojMotores.tick(TIME_STEP+5)
             
-            self.ejecutarAccion(self.accionActual)
+            self.seleccionarAccion(self.accionActual)
             
     def terminarRobot(self):
         #Finalizar los sistemas del robot.

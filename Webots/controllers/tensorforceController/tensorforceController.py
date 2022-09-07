@@ -113,22 +113,23 @@ def seleccionarApiControl():
     return api
 
 def bucleAprendizaje():
-    
 	global done, parado, variablesGlobales, entorno, agente, paradaTerminal
+	
+	print("Iniciando bucle Aprendizaje")
 	recompensa= 0
 	controlRobot.update()
 
 	estados = entorno.reset()
 
-	print("Estado inicial: \n", np.reshape(estados, (8,10,1)))
+	#print("Estado inicial: \n", np.reshape(estados, (8,10,1)))
 
 	terminal = False
 	recompensa = None
 	variablesGlobales.parado = True
 	while not done:
 		#print (imagen)
+		
 		if not variablesGlobales.parado:
-			
 			#Al ser terminal, terminamos el episodio y reiniciamos el entorno (Volver a la linea/parar)
 			if terminal: 
 				estados = entorno.reset()
@@ -144,7 +145,7 @@ def bucleAprendizaje():
 
 			estadoAnt= estados
 
-			estados, terminal, recompensa = entorno.execute(acciones)
+			estados, terminal, recompensa = entorno.execute(acciones) #actuar -> ver
 			
 			if guardarEvaluacion:
 				evaluadorRobot.almacenarPaso(controlRobot.getTime(),estadoAnt, acciones, terminal, recompensa)
@@ -152,6 +153,7 @@ def bucleAprendizaje():
 			agente.observe(terminal = terminal, reward = recompensa)
 
 		else:
+			#print("Esperando")
 			controlRobot.update()
             
 
@@ -178,23 +180,26 @@ def controlManual():
 						print("Estados terminales:", evaluadorRobot.getNumEstadosTerminales())
 					
 				elif event.button == 0: #Btn A
-					#Volver a permitir el movimiento
+					if variablesGlobales.parado:
+						#Volver a permitir el movimiento
 
-					#Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
-					print("Reanudado")
-					variablesGlobales.parado = False
-					paradaTerminal = False
-					  
-					controlRobot.reanudar()
+						#Reanudar la ejecucion de la parte del bucle que ejecuta acciones y aprende
+						print("Reanudado")
+						variablesGlobales.parado = False
+						paradaTerminal = False
+						
+						controlRobot.reanudar()
 
 				elif event.button == 1: #Btn B
-					#Parada de emergencias
-					print("Parado")
+					if not variablesGlobales.parado:
 					
-					paradaTerminal = True  
-					#Activar parada
-					controlRobot.parada()
-					
+						#Parada de emergencias
+						print("Parado")
+						
+						paradaTerminal = True  
+						#Activar parada
+						controlRobot.parada()
+						
 				elif event.button == 3: # Btn Y
 					print("Arquitectura de la red:")
 					print(agente.get_architecture())

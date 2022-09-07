@@ -41,11 +41,12 @@ class EntornoLineas(Environment):
     def reset(self):
 
         
-        self.controlRobot.setAccion(5)
+        #self.controlRobot.setAccion(5)
+        
+        self.controlRobot.reset()
         
         next_state, viendoLinea = self.controlRobot.getEstado()
         
-        self.controlRobot.reset()
         return next_state
 
     def execute(self, actions):

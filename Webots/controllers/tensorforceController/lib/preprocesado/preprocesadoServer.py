@@ -53,8 +53,8 @@ class PreprocesadoServer(Preprocesado):
         return self.resolucionSalida[0]*self.resolucionSalida[1]*256
     
     def getDictEstados(self):
-        return dict(type= 'int', shape=self.resolucionSalida, num_values= 256)
-        #return dict(type= 'float', shape=self.resolucionSalida, min_value = 0.0, max_value = 255.0)
+        #return dict(type= 'int', shape=self.resolucionSalida, num_values= 256)
+        return dict(type= 'float', shape=(8,10,1), min_value = 0.0, max_value = 1.0)
 
     def getEstado(self, image):
         resizedImg, viendoImg = self.processImage(image)

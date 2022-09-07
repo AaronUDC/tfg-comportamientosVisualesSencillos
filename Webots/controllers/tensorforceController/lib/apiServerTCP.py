@@ -48,8 +48,8 @@ class ApiServerTCP(ApiControlRobot):
         print("Esperando Conexión")
         self.sock.listen(1)
         self.conection, self.dir = self.sock.accept()
-        self.lastPacketTimestamp = timestampMilis()
-        self.lastTimestamp = millisToBytes(0)
+        self.lastPacketTimestamp = timestampMilis() # Tiempo de la ultima recepcion de un paquete
+        self.lastTimestamp = millisToBytes(0) # Ultima marca de tiempo recibida del cliente
         self.img = None
 
         self.accionActual = 0
@@ -90,7 +90,7 @@ class ApiServerTCP(ApiControlRobot):
         return self.preprocesado.getDictEstados()
 
     def getEstado(self):
-        
+        #print("recibir")
         chunk = self.conection.recv(88)
 
         if chunk == b'':
@@ -109,20 +109,24 @@ class ApiServerTCP(ApiControlRobot):
         self.preprocesado.estadoActual = imagenProcesada
         self.preprocesado.viendoLinea = viendoLinea
 
+        #print("recibido")
         return imagenProcesada, viendoLinea
 
     def setAccion(self, accion):
         self.seleccionarAccion(accion)
     
     def seleccionarAccion(self, accion):
+        #print("Enviar")
         accionBytes= bytearray(np.array(([accion]), dtype=np.uint8).tobytes())
         dataBytes = bytearray(self.lastTimestamp)
         accionBytes.extend(dataBytes)
-        dataBytes = bytearray(millisToBytes(timestampMilis()-self.lastPacketTimestamp))
+        tiempo = timestampMilis()-self.lastPacketTimestamp
+        #print(tiempo)
+        dataBytes = bytearray(millisToBytes(tiempo))
         accionBytes.extend(dataBytes)
         
         sent = self.conection.send(accionBytes)
-        #print("Enviado: ", time.process_time())
+        #print("Enviado")
         
         if sent == 0:
             raise RuntimeError("socket connection broken")
