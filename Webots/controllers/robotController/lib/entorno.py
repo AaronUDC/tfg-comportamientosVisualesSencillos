@@ -74,7 +74,7 @@ class Entorno():
 			reward = -10
 		else:
 			#Recompensa por seguir la linea normal
-			reward = 0
+			reward = 0.5
 		
 		return next_state, terminal, reward
 		
