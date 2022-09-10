@@ -32,12 +32,12 @@ class PreprocesadoServer(Preprocesado):
         self.lastImg = image
         
         #_,mask = cv2.erode(image,np.ones((3,3)),iterations=1)
-        dilatedImg = cv2.dilate(image, np.ones((3,3), np.uint8))
+        dilatedImg = cv2.dilate(image, np.ones((3,3), np.uint8), borderType=cv2.BORDER_REPLICATE)
         diffImg = 255 - cv2.absdiff(image, dilatedImg)
         #print(np.min(diffImg))
         
         if np.max(diffImg) - np.min(diffImg) > (255 * 0.3):
-            norm_img = cv2.normalize(diffImg,None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
+           norm_img = cv2.normalize(diffImg,None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8UC1)
         else:
             norm_img = diffImg
         
@@ -45,9 +45,9 @@ class PreprocesadoServer(Preprocesado):
         #print(sumImg, self.sumaMinima)
         if sumImg < self.sumaMinima:
 
-            return image, True 
+            return norm_img, True 
 
-        return image, False
+        return norm_img, False
 
     def getNumEstados(self):
         return self.resolucionSalida[0]*self.resolucionSalida[1]*256

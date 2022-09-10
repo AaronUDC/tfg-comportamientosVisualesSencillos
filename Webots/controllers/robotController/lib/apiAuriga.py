@@ -10,10 +10,10 @@ import pygame
 
 import threading
 
-TIME_STEP = 30
+TIME_STEP = 15
 
 #Velocidades para el movimiento
-VEL_BASE = 45*3
+VEL_BASE = 30*3
 MOD_VEL = 25
 
 SENSORES_INFERIORES = [6,7]
@@ -95,14 +95,21 @@ class ApiAuriga(ApiControlRobot):
         return self.preprocesado.getEstado(self.getImgCamara())
         
     def setMotores(self, izqu, der):
-        self.auriga.set_speed(int(izqu),int(der), callback = onReading)
-
+        izquInt = round(izqu)
+        derInt = round(der)
+        #print(izquInt,derInt)
+        self.auriga.set_speed(izquInt, derInt, callback = onReading)
+    
+    def setAccion(self, accion):
+        if not self.parado: #Si esta parado, no admitimos nuevas ordenes
+            self.accionActual = accion
+    
     def seleccionarAccion(self, accion):
 
         velAng = 0
         
         if accion == 0:
-            velAng = 15 #Girar fuerte a la izquierda
+            velAng = 17 #Girar fuerte a la izquierda
         
         elif accion == 1:
             velAng = 12 #Girar a la izquierda
@@ -115,7 +122,7 @@ class ApiAuriga(ApiControlRobot):
             velAng = -12 #Girar a la derecha
         
         elif accion == 4:
-            velAng = -15 #Girar fuerte a la derecha
+            velAng = -17 #Girar fuerte a la derecha
         
         elif accion == 5:
             self.setMotores(0,0) 
@@ -125,15 +132,17 @@ class ApiAuriga(ApiControlRobot):
         l = (VEL_BASE - (14.5/2) * velAng)/ 3 # (VelBase - (distanciaRuedas/2) * velAng) / radioRuedas 
         r = (VEL_BASE + (14.5/2) * velAng)/ 3 # (VelBase + (distanciaRuedas/2) * velAng) / radioRuedas 
         
+        #print (l, r)
+        
         self.setMotores(-l,r)
 
     def _bucleMotores(self):
-        #Hilo que se encarga de controlar los motores. Se ejecuta la orden actual cada 50ms
+        #Hilo que se encarga de controlar los motores. Se ejecuta la orden actual constantemente
         relojMotores = pygame.time.Clock()
         while not self.terminado:
             #time.sleep(1.0/(TIME_STEP+5))
             relojMotores.tick(TIME_STEP+5)
-            
+            print(self.accionActual)
             self.seleccionarAccion(self.accionActual)
             
     def terminarRobot(self):

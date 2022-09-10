@@ -15,9 +15,9 @@ IP_PC, PORT_PC = "192.168.1.44", 9999
 IP_ROBOT, PORT_ROBOT = "", 9998
 PORT_MANDO = 9997
 
-TIME_STEP = 30
+TIME_STEP = 15
 
-VEL_BASE = 45*3
+VEL_BASE = 30*3
 
 RESOLUCION_RESIZ = (10,8)
 
@@ -67,14 +67,17 @@ def hiloAuriga():
 		
 		ejecutarAccion(accionActual)
 
-def setMotores(izqu, der):
-	auriga.set_speed(int(izqu),int(der), callback= onReading)
+def setMotores( izqu, der):
+	izquInt = round(izqu)
+	derInt = round(der)
+	#print(izquInt,derInt)
+	auriga.set_speed(izquInt, derInt, callback = onReading)
 
 def ejecutarAccion(accion):
 	velAng = 0
-	accion = 5
+	#accion = 5
 	if accion == 0:
-		velAng = 15 #Girar fuerte a la izquierda
+		velAng = 17 #Girar fuerte a la izquierda
 	
 	elif accion == 1:
 		velAng = 12 #Girar a la izquierda
@@ -86,7 +89,7 @@ def ejecutarAccion(accion):
 		velAng = -12 #Girar a la derecha
 	
 	elif accion == 4:
-		velAng = -15 #Girar fuerte a la derecha
+		velAng = -17 #Girar fuerte a la derecha
 	
 	elif accion == 5:
 		setMotores(0,0) 
@@ -239,21 +242,23 @@ try:
 				logs.almacenarPaso(millisEnvio,millisRecepcion,
 					tiempoServidor,imgBytes,accion) #Almacenar la recepcion en el log
 						
-				
-				print(accion)
-	
-				if not parado:
-					#Actualizar la acción si no se ha ordenado parada.
-					setAccion(accion)
-					
-				
 			except:
 				#En caso de Timeout del servidor u otro error
 				print("Error")
 				setAccion(5)
 				parado = True
 				done = True
-				break
+				break	
+				
+				
+			print(accion)
+
+			if not (parado or serverMando.paradaTerminal):
+				#Actualizar la acción si no se ha ordenado parada.
+				setAccion(accion)
+					
+				
+			
 			
 			
 			reloj.tick(TIME_STEP)
